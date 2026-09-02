@@ -174,8 +174,14 @@ ZERO PAGE $0000-$00FF
   $CF  aud_p1           2
   $D1  aud_p2           2
   $D3  nmi_tmp          1
-  $D4  hud_dirty        1
-  $D5  score            3
+  $D4  sc_ptr           2
+  $D6  sc_wait          1
+  $D7  sc_hold          1
+  $D8  sc_count         1
+  $D9  sc_row           1
+  $DA  sc_bank          1
+  $DB  hud_dirty        1
+  $DC  score            3
 
 BSS $0300-$07FF
   $300  vram_buf         176
@@ -248,5 +254,5 @@ BSS $0300-$07FF
   $597  boss_anchor      2
   $599  scratch          32
 
-zero page used : 216 / 256
+zero page used : 223 / 256
 BSS used       : 697 / 1280 (ends $05B9)

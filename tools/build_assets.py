@@ -50,6 +50,12 @@ def main():
     import gen_entities
     log.append(gen_entities.build(write))
 
+    import gen_screens
+    log.append(gen_screens.build(write, chr_rom))
+
+    import gen_text
+    log.append(gen_text.build(write))
+
     import gen_levels
     log.append(gen_levels.build(write, chr_rom))
 

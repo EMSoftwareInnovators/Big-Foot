@@ -175,3 +175,23 @@ NUM_SONGS       = 15
 
 ; audio data banks (linked for the $A000 window)
 AUDIO_BANK      = 1             ; driver tables, envelopes and sound effects
+SCREEN_BANK     = 2             ; full-screen pictures
+TEXT_BANK       = 3             ; cutscene scripts and dialogue
+MENU_BANK       = 3             ; ... and the code that shows them
+
+; ---------------------------------------------------------------- cutscenes
+; The bytecode src/script.s runs.  Mirrored in tools/gen_text.py.
+SC_END          = 0
+SC_SCREEN       = 1             ; +picture id
+SC_BLANK        = 2
+SC_TEXT         = 3             ; +row, +addr    (centred)
+SC_TEXTAT       = 4             ; +col, +row, +addr
+SC_WAIT         = 5             ; +frames
+SC_MUSIC        = 6             ; +song id
+SC_SFX          = 7             ; +effect id
+SC_CLEAR        = 8             ; +row, +count
+SC_PAUSE        = 9             ; hold until START or A
+SC_MODE         = 10            ; +game mode, and stop
+SC_FADE         = 11            ; +music attenuation
+SC_SHAKE        = 12            ; +frames
+SC_STEP         = 13            ; one enormous footfall

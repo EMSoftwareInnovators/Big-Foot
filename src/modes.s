@@ -16,24 +16,24 @@
 .export gameover_enter, gameover_run
 .export stageclear_enter, stageclear_run
 .export map_enter, map_run
-.export menu_palette, txt_stageword
+.export menu_palette, txt_stageword, blank_screen
 
-.segment "CODE2"
+.segment "MENU"
 
 ; ---------------------------------------------------------------------------
 menu_palette:
         .byte $0F,$00,$10,$30, $0F,$06,$16,$30, $0F,$07,$28,$30, $0F,$01,$11,$21
         .byte $0F,$16,$27,$37, $0F,$00,$10,$30, $0F,$07,$17,$28, $0F,$01,$21,$31
 
-txt_stageword:  .byte 19,20,1,7,5,0                       ; "STAGE"
-txt_gameover:   .byte 7,1,13,5,0,15,22,5,18,0             ; "GAME OVER"
-txt_continue:   .byte 3,15,14,20,9,14,21,5,0              ; "CONTINUE"
-txt_password:   .byte 16,1,19,19,23,15,18,4,0             ; "PASSWORD"
-txt_title:      .byte 20,9,20,12,5,0                      ; "TITLE"
-txt_clear:      .byte 3,12,5,1,18,0                       ; "CLEAR"
-txt_theend:     .byte 20,8,5,0,6,15,15,20,0               ; "THE FOOT"
-txt_marches:    .byte 13,1,18,3,8,5,19,0,15,14,0          ; "MARCHES ON"
-txt_lives:      .byte 12,9,22,5,19,0                      ; "LIVES"
+txt_stageword:  .byte 19,20,1,7,5,$FF                       ; "STAGE"
+txt_gameover:   .byte 7,1,13,5,0,15,22,5,18,$FF             ; "GAME OVER"
+txt_continue:   .byte 3,15,14,20,9,14,21,5,$FF              ; "CONTINUE"
+txt_password:   .byte 16,1,19,19,23,15,18,4,$FF             ; "PASSWORD"
+txt_title:      .byte 20,9,20,12,5,$FF                      ; "TITLE"
+txt_clear:      .byte 3,12,5,1,18,$FF                       ; "CLEAR"
+txt_theend:     .byte 20,8,5,0,6,15,15,20,$FF               ; "THE FOOT"
+txt_marches:    .byte 13,1,18,3,8,5,19,0,15,14,$FF          ; "MARCHES ON"
+txt_lives:      .byte 12,9,22,5,19,$FF                      ; "LIVES"
 
 ; ---------------------------------------------------------------------------
 ; shared: paint a plain text screen
@@ -60,6 +60,14 @@ txt_lives:      .byte 12,9,22,5,19,0                      ; "LIVES"
         sta scroll_x
         sta scroll_nt
         jmp ppu_on
+.endproc
+
+; ---------------------------------------------------------------------------
+; blank_screen -- a plain black page with the menu palette, ready for text
+; ---------------------------------------------------------------------------
+.proc blank_screen
+        jsr plain_screen
+        jmp show_screen
 .endproc
 
 ; ---------------------------------------------------------------------------

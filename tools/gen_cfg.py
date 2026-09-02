@@ -4,7 +4,8 @@
 PRG: 256 KiB = 32 x 8 KiB banks (MMC3 / mapper 4)
      banks 0..29  -> switchable
        * banks 0..3 are linked for the $A000 window (R7)
-         0 = shared tables, 1..3 = audio (driver tables, SFX, songs)
+         0 = shared tables, 1..2 = audio and pictures,
+         3 = menu/cutscene code and text
        * banks 4..29 are linked for the $8000 window (R6); 4..11 = stages
      bank 30      -> fixed at $C000
      bank 31      -> fixed at $E000 (holds vectors)
@@ -37,6 +38,9 @@ out.append("    BSS:      load = RAM,     type = bss, define = yes;\n")
 out.append("    HDR:      load = HEADER,  type = ro;\n")
 for b in range(30):
     out.append("    B%02d:      load = PRG_%02d,  type = ro, optional = yes;\n" % (b, b))
+# The menus and cutscenes are code, but they only ever run while the $A000
+# window is theirs, so they live in bank 3 alongside the script data.
+out.append("    MENU:     load = PRG_03,  type = ro, optional = yes;\n")
 out.append("    CODE2:    load = PRG_30,  type = ro, optional = yes;\n")
 out.append("    RODATA2:  load = PRG_30,  type = ro, optional = yes;\n")
 out.append("    CODE:     load = PRG_31,  type = ro;\n")

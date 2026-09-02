@@ -174,6 +174,12 @@ RAM_INC_ = 1
 .globalzp aud_p1
 .globalzp aud_p2
 .globalzp nmi_tmp
+.globalzp sc_ptr
+.globalzp sc_wait
+.globalzp sc_hold
+.globalzp sc_count
+.globalzp sc_row
+.globalzp sc_bank
 .globalzp hud_dirty
 .globalzp score
 .global oam_buf

@@ -174,6 +174,13 @@ ZP = [
     ("aud_busy", 1),            # set while the main thread edits driver state
     ("aud_p0", 2), ("aud_p1", 2), ("aud_p2", 2),
     ("nmi_tmp", 1),             # scratch private to the NMI handler
+    # cutscene interpreter -- sc_ptr is read indirectly, so it must be here
+    ("sc_ptr", 2),              # script program counter
+    ("sc_wait", 1),             # frames left on a WAIT
+    ("sc_hold", 1),             # 1 = holding for a button press
+    ("sc_count", 1),            # rows left to blank on a CLEAR
+    ("sc_row", 1),
+    ("sc_bank", 1),
     # hud -----------------------------------------------------------------
     ("hud_dirty", 1),
     ("score", 3),

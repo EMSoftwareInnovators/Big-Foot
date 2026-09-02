@@ -66,8 +66,9 @@
         sta rng_hi
         lda #3
         sta lives
+        lda #MODE_MAP           ; anything but the title, so that the first
+        sta game_mode           ; pass through the loop runs title_enter
         lda #MODE_TITLE
-        sta game_mode
         sta mode_next
 
         lda #$80
@@ -88,6 +89,8 @@
         sta stage_num
         sta checkpoint
         sta shoe_flags
+        lda #MODE_MAP
+        sta game_mode
         lda #MODE_TITLE
         sta mode_next
         jmp main_loop

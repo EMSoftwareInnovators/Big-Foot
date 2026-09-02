@@ -4,7 +4,7 @@
 .include "constants.inc"
 .include "ram.inc"
 
-.import read_pads, wait_nmi, ppu_off
+.import read_pads, wait_nmi, ppu_off, set_prga000
 .import title_enter, title_run
 .import intro_enter, intro_run
 .import stageintro_enter, stageintro_run
@@ -39,7 +39,7 @@
         sta ptr0
         lda enter_hi,x
         sta ptr0+1
-        jsr call_ptr0
+        jsr call_mode
 
 @dispatch:
         ldx game_mode
@@ -47,7 +47,7 @@
         sta ptr0
         lda run_hi,x
         sta ptr0+1
-        jsr call_ptr0
+        jsr call_mode
 
         inc mode_timer
         jsr wait_nmi
@@ -57,6 +57,27 @@
 .proc call_ptr0
         jmp (ptr0)
 .endproc
+
+; ---------------------------------------------------------------------------
+; call_mode -- run a mode handler with the $A000 bank that mode needs.
+;
+; Play needs the shared tables in bank 0; every other mode is menu or
+; cutscene code, which lives in bank 3 next to its own text.  Mapping it
+; here is what lets the two fixed banks stay inside 16 KiB.
+; ---------------------------------------------------------------------------
+.proc call_mode
+        ldx game_mode
+        lda mode_bank,x
+        jsr set_prga000
+        jsr call_ptr0
+        lda #0                  ; leave the shared tables mapped by default
+        jmp set_prga000
+.endproc
+
+mode_bank:
+        .byte MENU_BANK, MENU_BANK, MENU_BANK, 0
+        .byte MENU_BANK, MENU_BANK, MENU_BANK, MENU_BANK
+        .byte MENU_BANK, MENU_BANK, MENU_BANK, MENU_BANK
 
 enter_lo:
         .lobytes title_enter, intro_enter, stageintro_enter, play_enter

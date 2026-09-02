@@ -348,6 +348,18 @@ aud_p1: .res 2
 aud_p2: .res 2
 .exportzp nmi_tmp
 nmi_tmp: .res 1
+.exportzp sc_ptr
+sc_ptr: .res 2
+.exportzp sc_wait
+sc_wait: .res 1
+.exportzp sc_hold
+sc_hold: .res 1
+.exportzp sc_count
+sc_count: .res 1
+.exportzp sc_row
+sc_row: .res 1
+.exportzp sc_bank
+sc_bank: .res 1
 .exportzp hud_dirty
 hud_dirty: .res 1
 .exportzp score

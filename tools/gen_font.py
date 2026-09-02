@@ -142,7 +142,7 @@ def _divider(kind):
         for y in range(8):
             for x in range(8):
                 im.px[y][x] = 1
-    elif kind == 2:    # HUD背 backing
+    elif kind == 2:    # woven HUD backing
         for y in range(8):
             for x in range(8):
                 im.px[y][x] = 1 if ((x ^ y) & 4) else 2

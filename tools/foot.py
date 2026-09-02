@@ -89,6 +89,26 @@ def _toe_mask(i, curl=0.0, spread=0.0):
     return m
 
 
+def model_masks(scale, curls=None, spread=0.0):
+    """Rasterise the body and the five toes at an arbitrary scale.
+
+    The title screen needs a foot far larger than any sprite, and it has to
+    be recognisably the *same* foot, so it is built from this model rather
+    than drawn again by hand.
+    """
+    global S, LW, LH
+    saved = (S, LW, LH)
+    S = scale
+    LW, LH = int(MODEL_W * S), int(MODEL_H * S)
+    try:
+        body = _body_mask()
+        toes = [_toe_mask(i, 0.0 if curls is None else curls[i], spread)
+                for i in range(5)]
+    finally:
+        S, LW, LH = saved
+    return body, toes
+
+
 # ---------------------------------------------------------------------------
 def _affine(angle, pivot, squash=1.0, stretch=1.0, lean=0.0, offset=(0, 0)):
     """Return the inverse transform (dest -> local) as a callable."""
