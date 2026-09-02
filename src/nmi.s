@@ -6,13 +6,13 @@
 ;   2. drain the VRAM update queue
 ;   3. push CHR bank changes
 ;   4. park the scroll at (0,0) so the HUD renders unscrolled
-;   5. wait for the sprite-0 hit at scanline 24 and switch to the
-;      camera scroll for the playfield
-;   6. tick the music engine
+;   5. arm the MMC3 scanline IRQ, which hands the playfield its own scroll
+;      at the bottom of the status bar
+;   6. tick the sound driver
 ;
-; The sprite-0 split is used instead of an MMC3 scanline IRQ: it needs no
-; cycle-exact timing and cannot desynchronise, which matters more here than
-; the ~3000 cycles it costs.
+; Steps 4 and 5 run on every NMI, not only on frames the main loop finished:
+; if the HUD scroll were skipped the status bar would slide with the
+; playfield whenever a frame overruns.
 ;
 .include "constants.inc"
 .include "ram.inc"
@@ -108,7 +108,7 @@
 @packet:
         lda vram_buf,x
         beq @finish
-        sta tmp0                ; length
+        sta nmi_tmp                ; length
         inx
         lda ppu_ctrl
         and #$FB                ; clear the increment bit ...
@@ -121,7 +121,7 @@
         lda vram_buf,x
         sta PPUADDR
         inx
-        ldy tmp0
+        ldy nmi_tmp
 @copy:  lda vram_buf,x
         sta PPUDATA
         inx

@@ -3,15 +3,16 @@
 
 PRG: 256 KiB = 32 x 8 KiB banks (MMC3 / mapper 4)
      banks 0..29  -> switchable
-       * banks 0..1 are linked for the $A000 window (R7)
-       * banks 2..29 are linked for the $8000 window (R6)
+       * banks 0..3 are linked for the $A000 window (R7)
+         0 = shared tables, 1..3 = audio (driver tables, SFX, songs)
+       * banks 4..29 are linked for the $8000 window (R6); 4..11 = stages
      bank 30      -> fixed at $C000
      bank 31      -> fixed at $E000 (holds vectors)
-CHR: 128 KiB = 128 x 1 KiB banks
+CHR: 256 KiB = 256 x 1 KiB banks
 """
 import os
 
-A000_BANKS = 2          # banks linked at $A000
+A000_BANKS = 4          # banks linked at $A000 (0 = shared data, 1..3 = audio)
 LAST = 31
 
 out = []

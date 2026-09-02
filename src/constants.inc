@@ -152,6 +152,7 @@ SFX_SELECT      = 19
 SFX_PAUSE       = 20
 SFX_SPLASH      = 21
 SFX_ARROW       = 22
+NUM_SFX         = 23
 
 ; songs
 MUS_NONE        = $FF
@@ -171,3 +172,6 @@ MUS_GAMEOVER    = 12
 MUS_CLEAR       = 13
 MUS_INTRO       = 14
 NUM_SONGS       = 15
+
+; audio data banks (linked for the $A000 window)
+AUDIO_BANK      = 1             ; driver tables, envelopes and sound effects

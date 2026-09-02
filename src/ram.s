@@ -322,14 +322,32 @@ boss_state: .res 1
 boss_flash: .res 1
 .exportzp mus_song
 mus_song: .res 1
-.exportzp mus_tick
-mus_tick: .res 1
 .exportzp mus_speed
 mus_speed: .res 1
-.exportzp sfx_req
-sfx_req: .res 1
+.exportzp mus_fade
+mus_fade: .res 1
 .exportzp aud_tmp
 aud_tmp: .res 1
+.exportzp aud_ch
+aud_ch: .res 1
+.exportzp aud_reg
+aud_reg: .res 1
+.exportzp aud_vol
+aud_vol: .res 1
+.exportzp aud_note
+aud_note: .res 1
+.exportzp aud_bank
+aud_bank: .res 1
+.exportzp aud_busy
+aud_busy: .res 1
+.exportzp aud_p0
+aud_p0: .res 2
+.exportzp aud_p1
+aud_p1: .res 2
+.exportzp aud_p2
+aud_p2: .res 2
+.exportzp nmi_tmp
+nmi_tmp: .res 1
 .exportzp hud_dirty
 hud_dirty: .res 1
 .exportzp score
@@ -422,50 +440,40 @@ text_line: .res 1
 password_buf: .res 8
 .export pw_cursor
 pw_cursor: .res 1
+.export ch_ordb
+ch_ordb: .res 8
+.export ch_ord
+ch_ord: .res 8
 .export ch_ptr
 ch_ptr: .res 8
 .export ch_wait
 ch_wait: .res 4
-.export ch_note
-ch_note: .res 4
-.export ch_instr
-ch_instr: .res 4
-.export ch_env
-ch_env: .res 4
-.export ch_envpos
-ch_envpos: .res 4
 .export ch_len
 ch_len: .res 4
-.export ch_loop
-ch_loop: .res 8
+.export ch_instr
+ch_instr: .res 4
+.export ch_note
+ch_note: .res 4
 .export ch_vol
 ch_vol: .res 4
-.export ch_arp
-ch_arp: .res 4
-.export ch_detune
-ch_detune: .res 4
-.export ch_pattern
-ch_pattern: .res 4
-.export ch_row
-ch_row: .res 4
-.export ch_transpose
-ch_transpose: .res 4
-.export sfx_ptr
-sfx_ptr: .res 2
-.export sfx_timer
-sfx_timer: .res 1
-.export sfx_chan
-sfx_chan: .res 1
-.export sfx_prio
-sfx_prio: .res 1
-.export sfx_id
-sfx_id: .res 1
-.export mus_order
-mus_order: .res 1
-.export mus_ptr
-mus_ptr: .res 2
-.export mus_len
-mus_len: .res 1
+.export ch_ep
+ch_ep: .res 4
+.export ch_ap
+ch_ap: .res 4
+.export ch_lasth
+ch_lasth: .res 4
+.export ch_on
+ch_on: .res 4
+.export ch_trig
+ch_trig: .res 4
+.export ch_static
+ch_static: .res 4
+.export sfxc_ptr
+sfxc_ptr: .res 8
+.export sfxc_pri
+sfxc_pri: .res 4
+.export sfxc_rep
+sfxc_rep: .res 4
 .export obj_state
 obj_state: .res 16
 .export boss_x

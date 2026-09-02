@@ -24,7 +24,7 @@
         sta MMC3_MIRROR
         lda #$00
         sta MMC3_PRGRAM
-        sta MMC3_IRQDISABLE     ; IRQs off; the HUD split uses sprite 0
+        sta MMC3_IRQDISABLE     ; IRQs off until the NMI arms the HUD split
         ; sane default banks
         lda #0
         sta bank_8000
@@ -63,11 +63,16 @@
 
 ; ---------------------------------------------------------------------------
 ; set_prg8000 -- A = 8 KiB bank number for the $8000 window
+;
+; X and Y are preserved: callers routinely hold an index across a bank
+; change, and a helper that quietly ate one caused a genuinely baffling bug.
 ; ---------------------------------------------------------------------------
 .proc set_prg8000
         sta bank_8000
-        ldx #6
-        stx MMC3_BANKSEL
+        pha
+        lda #6
+        sta MMC3_BANKSEL
+        pla
         sta MMC3_BANKDATA
         rts
 .endproc
@@ -77,8 +82,10 @@
 ; ---------------------------------------------------------------------------
 .proc set_prga000
         sta bank_a000
-        ldx #7
-        stx MMC3_BANKSEL
+        pha
+        lda #7
+        sta MMC3_BANKSEL
+        pla
         sta MMC3_BANKDATA
         rts
 .endproc

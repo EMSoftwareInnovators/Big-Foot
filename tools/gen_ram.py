@@ -163,10 +163,17 @@ ZP = [
     ("boss_flash", 1),
     # audio ---------------------------------------------------------------
     ("mus_song", 1),
-    ("mus_tick", 1),
-    ("mus_speed", 1),
-    ("sfx_req", 1),
+    ("mus_speed", 1),           # frames per row
+    ("mus_fade", 1),            # 0 = normal, 1..15 = attenuation
     ("aud_tmp", 1),
+    ("aud_ch", 1),              # voice index during the mixer pass
+    ("aud_reg", 1),             # voice*4: index for $4000,x / $4002,x / $4003,x
+    ("aud_vol", 1),
+    ("aud_note", 1),
+    ("aud_bank", 1),            # saved $A000 bank during the audio pass
+    ("aud_busy", 1),            # set while the main thread edits driver state
+    ("aud_p0", 2), ("aud_p1", 2), ("aud_p2", 2),
+    ("nmi_tmp", 1),             # scratch private to the NMI handler
     # hud -----------------------------------------------------------------
     ("hud_dirty", 1),
     ("score", 3),
@@ -219,28 +226,24 @@ BSS = [
     ("password_buf", 8),
     ("pw_cursor", 1),
     # audio ---------------------------------------------------------------
-    ("ch_ptr", 8),              # 4 channels x 2 bytes stream pointer
-    ("ch_wait", 4),
-    ("ch_note", 4),
-    ("ch_instr", 4),
-    ("ch_env", 4),
-    ("ch_envpos", 4),
-    ("ch_len", 4),
-    ("ch_loop", 8),
-    ("ch_vol", 4),
-    ("ch_arp", 4),
-    ("ch_detune", 4),
-    ("ch_pattern", 4),
-    ("ch_row", 4),
-    ("ch_transpose", 4),
-    ("sfx_ptr", 2),
-    ("sfx_timer", 1),
-    ("sfx_chan", 1),
-    ("sfx_prio", 1),
-    ("sfx_id", 1),
-    ("mus_order", 1),
-    ("mus_ptr", 2),
-    ("mus_len", 1),
+    # Four voices: 0 = pulse 1, 1 = pulse 2, 2 = triangle, 3 = noise.
+    ("ch_ordb", 8),             # order-list base   (2 bytes per voice)
+    ("ch_ord", 8),              # order-list cursor (2 bytes per voice)
+    ("ch_ptr", 8),              # pattern read cursor
+    ("ch_wait", 4),             # frames until the next pattern event
+    ("ch_len", 4),              # note length in rows
+    ("ch_instr", 4),            # current instrument
+    ("ch_note", 4),             # current note (NOTE_OFF = silent)
+    ("ch_vol", 4),              # pattern volume 0..15
+    ("ch_ep", 4),               # volume-envelope cursor
+    ("ch_ap", 4),               # arpeggio-envelope cursor
+    ("ch_lasth", 4),            # last period-high byte written
+    ("ch_on", 4),               # 0 = voice finished / silent
+    ("ch_trig", 4),             # 1 = retrigger the period-high register
+    ("ch_static", 4),           # 1 = envelopes settled, nothing left to write
+    ("sfxc_ptr", 8),            # per-voice SFX stream cursor
+    ("sfxc_pri", 4),            # per-voice SFX priority (0 = free)
+    ("sfxc_rep", 4),            # frames left on the current SFX frame
     # misc ----------------------------------------------------------------
     ("obj_state", 16),          # per-room switch / door state
     ("boss_x", 2),

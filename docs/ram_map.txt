@@ -161,12 +161,21 @@ ZERO PAGE $0000-$00FF
   $C1  boss_state       1
   $C2  boss_flash       1
   $C3  mus_song         1
-  $C4  mus_tick         1
-  $C5  mus_speed        1
-  $C6  sfx_req          1
-  $C7  aud_tmp          1
-  $C8  hud_dirty        1
-  $C9  score            3
+  $C4  mus_speed        1
+  $C5  mus_fade         1
+  $C6  aud_tmp          1
+  $C7  aud_ch           1
+  $C8  aud_reg          1
+  $C9  aud_vol          1
+  $CA  aud_note         1
+  $CB  aud_bank         1
+  $CC  aud_busy         1
+  $CD  aud_p0           2
+  $CF  aud_p1           2
+  $D1  aud_p2           2
+  $D3  nmi_tmp          1
+  $D4  hud_dirty        1
+  $D5  score            3
 
 BSS $0300-$07FF
   $300  vram_buf         176
@@ -210,39 +219,34 @@ BSS $0300-$07FF
   $51D  text_line        1
   $51E  password_buf     8
   $526  pw_cursor        1
-  $527  ch_ptr           8
-  $52F  ch_wait          4
-  $533  ch_note          4
-  $537  ch_instr         4
-  $53B  ch_env           4
-  $53F  ch_envpos        4
+  $527  ch_ordb          8
+  $52F  ch_ord           8
+  $537  ch_ptr           8
+  $53F  ch_wait          4
   $543  ch_len           4
-  $547  ch_loop          8
+  $547  ch_instr         4
+  $54B  ch_note          4
   $54F  ch_vol           4
-  $553  ch_arp           4
-  $557  ch_detune        4
-  $55B  ch_pattern       4
-  $55F  ch_row           4
-  $563  ch_transpose     4
-  $567  sfx_ptr          2
-  $569  sfx_timer        1
-  $56A  sfx_chan         1
-  $56B  sfx_prio         1
-  $56C  sfx_id           1
-  $56D  mus_order        1
-  $56E  mus_ptr          2
-  $570  mus_len          1
-  $571  obj_state        16
-  $581  boss_x           2
-  $583  boss_y           2
-  $585  boss_vx          2
-  $587  boss_vy          2
-  $589  boss_frm         1
-  $58A  boss_sub         1
-  $58B  boss_atk         1
-  $58C  boss_dir         1
-  $58D  boss_anchor      2
-  $58F  scratch          32
+  $553  ch_ep            4
+  $557  ch_ap            4
+  $55B  ch_lasth         4
+  $55F  ch_on            4
+  $563  ch_trig          4
+  $567  ch_static        4
+  $56B  sfxc_ptr         8
+  $573  sfxc_pri         4
+  $577  sfxc_rep         4
+  $57B  obj_state        16
+  $58B  boss_x           2
+  $58D  boss_y           2
+  $58F  boss_vx          2
+  $591  boss_vy          2
+  $593  boss_frm         1
+  $594  boss_sub         1
+  $595  boss_atk         1
+  $596  boss_dir         1
+  $597  boss_anchor      2
+  $599  scratch          32
 
-zero page used : 204 / 256
-BSS used       : 687 / 1280 (ends $05AF)
+zero page used : 216 / 256
+BSS used       : 697 / 1280 (ends $05B9)

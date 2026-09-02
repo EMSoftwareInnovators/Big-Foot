@@ -301,6 +301,9 @@ static u8 pad_state[2], pad_shift[2], pad_strobe;
 static u8 pad_buttons[2];
 
 static u8 apu_regs[0x20];
+static FILE *apulog;            /* -apulog: trace every APU register write */
+static u16 callat[8]; static int ncallat;   /* -callat: report A at a routine */
+static long apulog_from, apulog_to = -1;
 static long stall_cycles;
 
 static u8 cpu_read(u16 a);
@@ -400,7 +403,12 @@ static void cpu_write(u16 a, u8 v)
         if (pad_strobe) { pad_shift[0] = pad_buttons[0]; pad_shift[1] = pad_buttons[1]; }
         return;
     }
-    if (a < 0x4020) { apu_regs[a & 0x1F] = v; return; }
+    if (a < 0x4020) {
+        if (apulog && frame_count >= apulog_from &&
+            (apulog_to < 0 || frame_count <= apulog_to))
+            fprintf(apulog, "%ld %04X %02X\n", frame_count, a, v);
+        apu_regs[a & 0x1F] = v; return;
+    }
     if (a >= 0x6000 && a < 0x8000) { prgram[a & 0x1FFF] = v; return; }
     if (a >= 0x8000) {
         if (mapper == 4) {
@@ -824,7 +832,16 @@ int main(int argc, char **argv)
     const char *rompath = argv[1];
 
     for (int i = 2; i < argc; i++) {
-        if (!strcmp(argv[i], "-frames") && i + 1 < argc) frames = atol(argv[++i]);
+        if (!strcmp(argv[i], "-callat") && i + 1 < argc && ncallat < 8)
+            callat[ncallat++] = (u16)strtol(argv[++i], 0, 16);
+        else if (!strcmp(argv[i], "-apulog") && i + 2 < argc) {
+            apulog = fopen(argv[++i], "w");
+            char *r = argv[++i];
+            apulog_from = atol(r);
+            char *c = strchr(r, ':');
+            if (c) apulog_to = atol(c + 1);
+        }
+        else if (!strcmp(argv[i], "-frames") && i + 1 < argc) frames = atol(argv[++i]);
         else if (!strcmp(argv[i], "-scale") && i + 1 < argc) scale = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-dumpram") && i + 1 < argc) dumpram = argv[++i];
         else if (!strcmp(argv[i], "-dumpvram") && i + 1 < argc) dumpvram = argv[++i];
@@ -981,6 +998,9 @@ int main(int argc, char **argv)
         }
         for (int i = 0; i < pfn; i++)
             if (pc0 >= pfa[i] && pc0 < pfb[i]) pfc[i] += total_cycles - c_before;
+        for (int i = 0; i < ncallat; i++)
+            if (pc0 == callat[i])
+                printf("f%-6ld call $%04X A=$%02X X=$%02X\n", frame_count, pc0, A, X);
         if (PC == pc0) { if (++same_pc > 2000000) {
             fprintf(stderr, "HANG: stuck at $%04X\n", PC); jam_flag = 2; break; } }
         else same_pc = 0;
@@ -997,6 +1017,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < nshots; i++)
         if (shot_frame[i] >= 0 && shot_frame[i] < frames + 2) save_png(shot_name[i], scale);
 
+    if (apulog) fclose(apulog);
     if (dumpvram) {
         FILE *g = fopen(dumpvram, "wb");
         if (g) { fwrite(vram, 1, 2048, g); fwrite(palram, 1, 32, g); fclose(g); }
