@@ -341,7 +341,7 @@ def theme_village():
                                  (0x07, 0x17, 0x28),   # 1 soil, thatch, roofs
                                  (0x0C, 0x11, 0x21),   # 2 distance, clouds
                                  (0x0F, 0x10, 0x30)])  # 3 stone + HUD
-    _standard(th, 100, ground_pal=0, soil_pal=1, stone_pal=2, accent_pal=3,
+    _standard(th, 100, ground_pal=0, soil_pal=1, stone_pal=3, accent_pal=1,
               grass=True)
     th.add("SKY", mt(0), 0, EMPTY)
     th.add("BGA", T.cloud(101), 2, EMPTY)
@@ -400,11 +400,11 @@ def _bush():
 
 
 def theme_forest():
-    th = Theme("forest", 0x0F, [(0x09, 0x1A, 0x2A),   # 0 leaves
+    th = Theme("forest", 0x0C, [(0x09, 0x1A, 0x2A),   # 0 leaves
                                 (0x07, 0x17, 0x27),   # 1 bark, soil
-                                (0x01, 0x0C, 0x1C),   # 2 depths, mist
-                                (0x00, 0x10, 0x30)])  # 3 stone + HUD
-    _standard(th, 200, ground_pal=0, soil_pal=1, stone_pal=2, accent_pal=1,
+                                (0x01, 0x09, 0x1A),   # 2 the wood behind
+                                (0x00, 0x10, 0x30)])  # 3 rock + HUD
+    _standard(th, 200, ground_pal=0, soil_pal=1, stone_pal=3, accent_pal=1,
               grass=True, fill_kw={})
     th.add("SKY", mt(0), 0, EMPTY)
     th.add("BGA", _shaft(), 2, EMPTY)
@@ -495,7 +495,7 @@ def _log():
 
 
 def theme_fortress():
-    th = Theme("fortress", 0x0F, [(0x00, 0x10, 0x30),   # 0 cut stone
+    th = Theme("fortress", 0x21, [(0x00, 0x10, 0x30),   # 0 cut stone
                                   (0x07, 0x17, 0x27),   # 1 timber
                                   (0x01, 0x11, 0x21),   # 2 distance, sky
                                   (0x06, 0x16, 0x37)])  # 3 banners, fire + HUD
@@ -589,7 +589,7 @@ def _oil(phase):
 
 
 def theme_marsh():
-    th = Theme("marsh", 0x0F, [(0x09, 0x19, 0x29),   # 0 sickly reeds
+    th = Theme("marsh", 0x1C, [(0x09, 0x19, 0x29),   # 0 sickly reeds
                                (0x07, 0x08, 0x18),   # 1 mud
                                (0x01, 0x0C, 0x1C),   # 2 fog, water
                                (0x03, 0x14, 0x30)])  # 3 witchlight + HUD
@@ -664,9 +664,9 @@ def _bubbles(phase):
 
 
 def theme_factory():
-    th = Theme("factory", 0x0F, [(0x00, 0x10, 0x30),   # 0 steel
+    th = Theme("factory", 0x01, [(0x00, 0x10, 0x30),   # 0 steel
                                  (0x06, 0x16, 0x27),   # 1 rust, hot metal
-                                 (0x01, 0x02, 0x11),   # 2 far machinery
+                                 (0x00, 0x10, 0x11),   # 2 far machinery
                                  (0x07, 0x27, 0x37)])  # 3 furnace glow + HUD
     _standard(th, 500, ground_pal=0, soil_pal=0, stone_pal=0, accent_pal=1,
               grass=False, top_kw={"bw": 4, "bh": 4},
@@ -775,7 +775,7 @@ def _furnace(phase):
 
 
 def theme_cathedral():
-    th = Theme("cathedral", 0x0F, [(0x00, 0x10, 0x30),   # 0 pale stone
+    th = Theme("cathedral", 0x01, [(0x00, 0x10, 0x30),   # 0 pale stone
                                    (0x02, 0x12, 0x22),   # 1 shadowed vaults
                                    (0x04, 0x14, 0x24),   # 2 stained glass
                                    (0x07, 0x28, 0x38)])  # 3 gold, candlelight + HUD
@@ -873,9 +873,9 @@ def _gargoyle():
 
 
 def theme_battlefield():
-    th = Theme("battlefield", 0x0F, [(0x07, 0x17, 0x27),   # 0 scorched earth
+    th = Theme("battlefield", 0x17, [(0x07, 0x17, 0x27),   # 0 scorched earth
                                      (0x00, 0x10, 0x30),   # 1 broken stone
-                                     (0x01, 0x11, 0x21),   # 2 smoke, distance
+                                     (0x00, 0x06, 0x16),   # 2 ruins in the smoke
                                      (0x06, 0x16, 0x37)])  # 3 fire, banners + HUD
     _standard(th, 700, ground_pal=0, soil_pal=0, stone_pal=1, accent_pal=2,
               grass=False, top_kw={"base": 2, "mortar": 1, "light": 3, "bw": 6, "bh": 3, "damage": 3},
@@ -953,7 +953,7 @@ def _shield_wall():
 
 
 def theme_mountain():
-    th = Theme("mountain", 0x0F, [(0x00, 0x10, 0x30),   # 0 ancient masonry
+    th = Theme("mountain", 0x2C, [(0x00, 0x10, 0x30),   # 0 ancient masonry
                                   (0x01, 0x11, 0x21),   # 1 ice, cold stone
                                   (0x0C, 0x1C, 0x2C),   # 2 distance, strange glow
                                   (0x07, 0x28, 0x38)])  # 3 old gold + HUD
