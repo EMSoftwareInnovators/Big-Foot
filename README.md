@@ -196,6 +196,13 @@ Level layout comes from `tools/chunks.py`, a library of 35 theme-independent
 the compiler dresses each one in its theme's tiles, then adds a skyline or
 a back wall and scatters ground clutter.
 
+The compiler also refuses to emit a stage the foot cannot walk through. It
+finds every standable surface, then searches from the start the way the
+player moves -- up two metatiles, across three columns, down any distance --
+and fails the build if the boss cannot be reached. That check exists
+because the boss arenas were once walled on all four sides, which looks
+entirely normal in a screenshot.
+
 ### Entities
 
 A fixed pool of twelve, structure-of-arrays, with the slot index in X
