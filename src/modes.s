@@ -10,6 +10,7 @@
 .import load_palette, oam_reset, oam_finish, music_play, audio_stop, sfx_play
 .import stage_name_lo, stage_name_hi, warm_reset
 .import start_stage, reload_stage
+.import pw_make, pw_draw_at
 
 .export stageintro_enter, stageintro_run
 .export death_enter, death_run
@@ -34,6 +35,7 @@ txt_clear:      .byte 3,12,5,1,18,$FF                       ; "CLEAR"
 txt_theend:     .byte 20,8,5,0,6,15,15,20,$FF               ; "THE FOOT"
 txt_marches:    .byte 13,1,18,3,8,5,19,0,15,14,$FF          ; "MARCHES ON"
 txt_lives:      .byte 12,9,22,5,19,$FF                      ; "LIVES"
+txt_pwis:       .byte 16,1,19,19,23,15,18,4,43,$FF           ; "PASSWORD:"
 
 ; ---------------------------------------------------------------------------
 ; shared: paint a plain text screen
@@ -345,6 +347,32 @@ txt_lives:      .byte 12,9,22,5,19,$FF                      ; "LIVES"
         lda #12
         sta tmp1
         jsr text_at
+
+        ; The password resumes the run at the stage that comes next, so it
+        ; is generated one stage ahead of the one just cleared.
+        lda stage_num
+        pha
+        cmp #(NUM_STAGES - 1)
+        bcs :+
+        clc
+        adc #1
+        sta stage_num
+:       jsr pw_make
+        pla
+        sta stage_num
+        lda #<txt_pwis
+        sta ptr1
+        lda #>txt_pwis
+        sta ptr1+1
+        lda #16
+        sta tmp1
+        jsr text_center
+        lda #10
+        sta tmp0
+        lda #18
+        sta tmp1
+        jsr pw_draw_at
+
         jsr show_screen
         lda #MUS_CLEAR
         jmp music_play

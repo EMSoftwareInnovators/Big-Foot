@@ -197,12 +197,19 @@ def castle(scr, x0, y0, x1, y1, pal=2):
 
 
 def soldiers(scr, xs, y, colour=2):
-    """Tiny figures: two pixels of head, a body and legs.  Four pixels wide."""
+    """Tiny figures with spears: five pixels wide, eight tall.
+
+    The spear matters -- without it a four-pixel figure reads as a letter A,
+    and the point of putting people at the foot's heel is scale, not text.
+    """
     for x in xs:
-        scr.img.rect(x + 1, y, x + 2, y + 1, colour)
-        scr.img.rect(x, y + 2, x + 3, y + 4, colour)
-        scr.img.put(x, y + 5, colour)
-        scr.img.put(x + 3, y + 5, colour)
+        scr.img.rect(x + 5, y - 3, x + 5, y + 7, colour)     # spear
+        scr.img.rect(x + 1, y + 1, x + 2, y + 2, colour)     # head
+        scr.img.rect(x, y + 3, x + 3, y + 5, colour)         # body
+        scr.img.put(x, y + 6, colour)
+        scr.img.put(x + 3, y + 6, colour)
+        scr.img.put(x, y + 7, colour)
+        scr.img.put(x + 3, y + 7, colour)
 
 
 def clear_cells(scr, x0, y0, x1, y1):
@@ -289,41 +296,55 @@ def build_intro():
 # the ending picture: the statue, whole again
 # ---------------------------------------------------------------------------
 def build_ending():
+    """The king's statue, completed.
+
+    The joke is structural, so it has to be legible at a glance: everything
+    above the ankles is carved stone in proportion, and the right foot is
+    the foot -- bare, enormous, and plainly not part of the same statue.
+    """
     scr = Screen("ending")
     scr.region(0, 0, W - 1, H - 1, 0)
-    storm(scr, 4, 60, dense=3, phase=5, height=12)
+    storm(scr, 2, 34, dense=2, phase=5, height=11)
 
-    # plinth
     img = scr.img
-    img.rect(96, 190, 160, 205, 1)
-    img.rect(96, 190, 160, 191, 2)
-    img.rect(88, 200, 168, 205, 1)
-    img.rect(88, 200, 168, 201, 2)
-    scr.region(80, 184, 175, 207, 2)
 
-    # the statue: a robed figure with one foot missing, standing on the plinth
-    m = Mask(64, 128)
-    m.poly([(24, 6), (40, 6), (46, 40), (52, 118), (12, 118), (18, 40)])
-    m.ellipse(32, 10, 11, 11)               # head
-    m.ellipse(32, 34, 22, 12)               # shoulders
-    m.poly([(10, 34), (18, 34), (14, 78), (6, 78)])      # left arm
-    m.poly([(46, 34), (54, 34), (58, 78), (50, 78)])     # right arm
-    paste_mask(img, m, 96, 66, (1, 2, 3))
-    scr.region(96, 64, 159, 189, 2)
+    # ---- the statue: crown, head, robe, one ordinary leg ------------------
+    m = Mask(56, 126)
+    m.poly([(16, 8), (20, 0), (24, 8), (28, 0), (32, 8), (36, 0), (40, 8),
+            (40, 14), (16, 14)])                 # crown
+    m.ellipse(28, 24, 11, 12)                    # head
+    m.poly([(14, 40), (42, 40), (48, 100), (8, 100)])     # robe
+    m.ellipse(28, 40, 17, 8)                     # shoulders
+    m.poly([(6, 44), (13, 44), (11, 88), (4, 88)])        # left arm
+    m.poly([(43, 44), (50, 44), (52, 88), (45, 88)])      # right arm
+    m.rect(14, 100, 25, 120)                     # left leg
+    m.rect(10, 118, 28, 125)                     # left foot, in proportion
+    clear_cells(scr, 68, 16, 127, 149)
+    paste_mask(img, m, 72, 24, (1, 2, 3), bevel=6)
+    scr.region(68, 16, 127, 149, 2)
 
-    # the right foot, restored, at the base of the statue
-    body, toes = foot.model_masks(1.1)
+    # ---- and the right foot ----------------------------------------------
+    body, toes = foot.model_masks(1.4)
     whole = body.clone()
     for t in toes:
         whole.union(t)
-    paste_mask(img, whole, 128, 162, (1, 2, 3))
+    fx, fy = 132, 150 - whole.h
+    clear_cells(scr, 128, 96, 191, 149)
+    paste_mask(img, whole, fx, fy, (1, 2, 3), bevel=7)
     for t in toes:
-        paste_mask(img, t, 128, 162, (1, 2, 3))
-    scr.region(128, 160, 128 + whole.w - 1, 189, 1)
+        paste_mask(img, t, fx, fy, (1, 2, 3), bevel=3)
+    scr.region(128, 96, 191, 149, 1)
 
-    ground_strip(scr, 206, 215)
-    scr.region(0, 206, W - 1, 215, 2)
-    scr.region(0, 216, W - 1, H - 1, 2)
+    # ---- plinth -----------------------------------------------------------
+    img.rect(64, 150, 199, 165, 1)
+    img.rect(64, 150, 199, 151, 2)
+    img.rect(56, 160, 207, 165, 1)
+    img.rect(56, 160, 207, 161, 2)
+    scr.region(48, 144, 215, 167, 2)
+
+    ground_strip(scr, 168, 183)
+    scr.region(0, 168, W - 1, 183, 2)
+    scr.region(0, 184, W - 1, H - 1, 2)         # the closing lines print here
     return scr
 
 

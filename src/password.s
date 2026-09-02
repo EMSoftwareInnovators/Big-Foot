@@ -235,7 +235,8 @@ bad:    clc
         dec sub_state           ; still showing the rejection message
         beq :+
         rts
-:       jmp pw_refresh
+:       lda #18                 ; take the message back down
+        jmp text_blank_row
 @input:
         lda pad1_new
         and #BTN_RIGHT
@@ -352,7 +353,7 @@ letters:
         ldx #0
 marks:  cpx pw_cursor
         bne :+
-        lda #TILE_RULE
+        lda #(FONT_BASE + 42)   ; the '-' glyph, as an underline
         bne :++
 :       lda #FONT_BASE
 :       jsr vq_byte
@@ -367,7 +368,7 @@ marks:  cpx pw_cursor
 ; ---------------------------------------------------------------------------
 ; pw_center_queue -- ptr1 = string, tmp1 = row, through the VRAM queue
 ; ---------------------------------------------------------------------------
-.import text_center_queue
+.import text_center_queue, text_blank_row
 .proc pw_center_queue
         jmp text_center_queue
 .endproc

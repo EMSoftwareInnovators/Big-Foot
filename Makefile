@@ -2,6 +2,7 @@
 # BIG FOOT -- NES action platformer
 #
 #   make          build build/big_foot.nes
+#   make DEBUG=1  the same ROM plus the development shortcuts
 #   make clean    remove build products
 #   make assets   regenerate graphics / levels / music only
 #   make run      launch the ROM in an emulator if one is installed
@@ -18,6 +19,9 @@ GEN     := data/generated
 ROM     := $(BUILD)/big_foot.nes
 
 ASFLAGS := -g -I src -I $(GEN) --cpu 6502
+ifdef DEBUG
+ASFLAGS += -DBF_DEBUG
+endif
 LDFLAGS := -C $(CFG) -m $(BUILD)/big_foot.map -Ln $(BUILD)/big_foot.labels
 
 SRCS    := $(wildcard src/*.s)

@@ -40,6 +40,31 @@
 .endproc
 
 ; ---------------------------------------------------------------------------
+.ifdef BF_DEBUG
+; ---------------------------------------------------------------------------
+; debug_keys -- only assembled by `make DEBUG=1`.
+;   SELECT + START   clear the stage outright
+;   SELECT + B       hand over every piece of footwear
+; ---------------------------------------------------------------------------
+.proc debug_keys
+        lda pad1
+        and #BTN_SELECT
+        beq @done
+        lda pad1_new
+        and #BTN_START
+        beq :+
+        lda #MODE_STAGECLEAR
+        sta mode_next
+        rts
+:       lda pad1_new
+        and #BTN_B
+        beq @done
+        lda #$FF
+        sta shoe_flags
+@done:  rts
+.endproc
+.endif
+
 .proc play_enter
         jsr audio_stop
         jsr ppu_off
@@ -159,6 +184,14 @@
 
 ; ---------------------------------------------------------------------------
 .proc play_run
+.ifdef BF_DEBUG
+        jsr debug_keys
+        lda pad1
+        and #BTN_SELECT
+        beq :+
+        rts                     ; SELECT is the debug modifier, not a pause
+:
+.endif
         lda pad1_new
         and #BTN_START
         beq @nopause

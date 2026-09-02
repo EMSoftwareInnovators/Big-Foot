@@ -162,15 +162,15 @@ def build_scripts():
     s.screen(SCR_ENDING)
     s.page(["IN THE SQUARE BELOW,",
             "THEY RAISED A STATUE",
-            "OF THE KING."], row=18, hold=200)
+            "OF THE KING."], row=24, hold=200)
     s.page(["IT WAS MISSING",
-            "ITS RIGHT FOOT."], row=20, hold=200)
+            "ITS RIGHT FOOT."], row=25, hold=200)
     s.wait(90)
     s.sfx(13)                                       # SFX_PICKUP
-    s.page(["THE STATUE IS WHOLE NOW."], row=22, hold=200)
-    s.page(["THE STATUE'S EYES OPENED."], row=22, hold=200)
+    s.page(["THE STATUE IS WHOLE NOW."], row=26, hold=200)
+    s.page(["THE STATUE'S EYES OPENED."], row=26, hold=200)
     s.step()
-    s.page(["IT TOOK ONE STEP."], row=22, hold=200)
+    s.page(["IT TOOK ONE STEP."], row=26, hold=200)
     s.mode(MODE_CREDITS)
     out["ending"] = s
 
