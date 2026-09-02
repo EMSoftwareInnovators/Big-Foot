@@ -16,7 +16,8 @@
 .import ed_spd_lo, ed_spd_hi, ed_shot
 .import shake_start
 
-.export entities_init, entities_update, entities_draw, spawn_check
+.export entities_init, entities_update, entities_draw
+.export grab_try, carry_throw, carry_drop, spawn_check
 .export entity_alloc, entity_free, spawn_entity, entity_hurt_area
 .export particles_update, particles_draw, spawn_particle
 .export ent_probe, ent_solid_below, kill_entity
@@ -28,6 +29,8 @@ MAXFALL_E = $0400
 
 ; ---------------------------------------------------------------------------
 .proc entities_init
+        lda #0
+        sta p_carry             ; nothing survives a respawn between the toes
         ldx #MAX_ENTITIES-1
         lda #ES_FREE
 :       sta e_state,x
@@ -543,6 +546,8 @@ bit_tbl: .byte 1,2,4,8,16,32,64,128
 @loop:  stx cur_ent
         lda e_state,x
         beq @next
+        cmp #ES_HELD
+        beq @carried
         cmp #ES_DYING
         bne @alive
         dec e_tmr,x
@@ -559,9 +564,8 @@ bit_tbl: .byte 1,2,4,8,16,32,64,128
         jsr on_camera
         bcc @next                       ; off screen: freeze until it scrolls in
         ldy e_type,x
-        lda ed_behav,y
-        asl a
-        tay
+        lda ed_behav,y          ; behav_lo/hi are byte tables, so the
+        tay                     ; behaviour index is used as it stands
         lda behav_lo,y
         sta ptr1
         lda behav_hi,y
@@ -571,6 +575,8 @@ bit_tbl: .byte 1,2,4,8,16,32,64,128
         lda e_state,x
         beq @next
         jsr touch_player
+@carried:
+        jsr carry_follow                ; sits on the toes, does nothing else
 @next:
         ldx cur_ent
         inx
@@ -1256,6 +1262,163 @@ behav_hi:
         rts
 :       dec e_yl,x
 @done:  rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; the toe grab
+;
+; The foot has no hands, so it picks things up between its toes: the grab
+; window looks for anything flagged EF_GRABBABLE overlapping the player, and
+; a held object rides just above the instep until it is thrown or dropped.
+; ---------------------------------------------------------------------------
+.proc grab_try
+        lda p_carry
+        beq :+
+        rts                             ; already holding something
+:       ldx #0
+@loop:  stx cur_ent
+        lda e_state,x
+        cmp #ES_ACTIVE
+        bne @next
+        lda e_flags,x
+        and #EF_GRABBABLE
+        beq @next
+        jsr overlap_grab
+        bcc @next
+        lda #ES_HELD
+        sta e_state,x
+        lda #0
+        sta e_vxl,x
+        sta e_vxh,x
+        sta e_vyl,x
+        sta e_vyh,x
+        txa
+        clc
+        adc #1
+        sta p_carry                     ; slot + 1, so zero means empty
+        rts
+@next:  ldx cur_ent
+        inx
+        cpx #MAX_ENTITIES
+        bcc @loop
+        rts
+.endproc
+
+; overlap_grab -- a deliberately forgiving box for the toe grab: the foot
+; reaches a little further forward than it can kick, and a little higher,
+; so a rock resting on a ledge at ankle height can still be picked up.
+.proc overlap_grab
+        ldy e_type,x
+        lda e_xl,x
+        sec
+        sbc px
+        sta tmp0
+        lda e_xh,x
+        sbc px+1
+        sta tmp1
+        bpl :+
+        lda #0
+        sec
+        sbc tmp0
+        sta tmp0
+        lda #0
+        sbc tmp1
+        sta tmp1
+:       lda tmp1
+        bne @no
+        lda ed_w,y
+        lsr a
+        clc
+        adc #(PBOX_W / 2 + 8)
+        cmp tmp0
+        bcc @no
+        ; vertically: the entity's foot must sit between a little above the
+        ; player's head and a little below the player's sole
+        lda py
+        sec
+        sbc #(PBOX_H + 10)
+        sta tmp2                ; reach upward
+        lda py
+        clc
+        adc #6
+        sta tmp3                ; and a shade below the sole
+        lda e_yl,x
+        cmp tmp2
+        bcc @no
+        cmp tmp3
+        bcs @no
+        sec
+        rts
+@no:    clc
+        rts
+.endproc
+
+; carry_follow -- X = the held entity.
+;
+; It rides just in front of the toes and a little off the ground, which is
+; the only place a foot could plausibly be holding something and also the
+; only place it stays clear of the foot's own sprite.
+.proc carry_follow
+        lda p_face
+        bne @left
+        lda px                          ; facing right
+        clc
+        adc #18
+        sta e_xl,x
+        lda px+1
+        adc #0
+        sta e_xh,x
+        jmp @y
+@left:  lda px
+        sec
+        sbc #18
+        sta e_xl,x
+        lda px+1
+        sbc #0
+        sta e_xh,x
+@y:     lda py
+        sec
+        sbc #10
+        sta e_yl,x
+        lda py+1
+        sbc #0
+        sta e_yh,x
+        rts
+.endproc
+
+; carry_throw -- launch the held object forward
+.proc carry_throw
+        lda p_carry
+        beq @none
+        sec
+        sbc #1
+        tax
+        lda #0
+        sta p_carry
+        lda #ES_ACTIVE
+        sta e_state,x
+        lda #EF_PROJECTILE              ; from here on it hurts what it hits
+        ora e_flags,x
+        sta e_flags,x
+        jsr punt_object
+        rts
+@none:  rts
+.endproc
+
+; carry_drop -- put the held object down where it is (used when hurt)
+.proc carry_drop
+        lda p_carry
+        beq @none
+        sec
+        sbc #1
+        tax
+        lda #0
+        sta p_carry
+        sta e_vxl,x
+        sta e_vxh,x
+        lda #ES_ACTIVE
+        sta e_state,x
+@none:  rts
 .endproc
 
 ; ---------------------------------------------------------------------------

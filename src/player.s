@@ -15,6 +15,7 @@
 .import pf_bank, pf_ms_lo, pf_ms_hi, pf_remap, panim_tbl_lo, panim_tbl_hi
 .import draw_metasprite, spr_set_world, shake_start
 .import sfx_play, spawn_particle, entity_hurt_area
+.import grab_try, carry_throw, carry_drop
 .import boss_hit_test, boss_damage
 .import set_prga000
 
@@ -66,8 +67,7 @@ shoe_stomp:     .byte $03,$01,$04,$02,$03,$01,$01,$06
         sta p_walkdist
         sta p_bounce
         sta p_flash
-        lda #$FF
-        sta p_carry
+        sta p_carry             ; 0 = nothing held; otherwise slot + 1
         lda #PLAYER_MAX_HP
         sta p_hp_max
         sta p_hp
@@ -715,7 +715,27 @@ shoe_stomp:     .byte $03,$01,$04,$02,$03,$01,$01,$06
 .proc attack_input
         lda pad1_new
         and #BTN_B
-        beq @done
+        bne :+
+        rts
+:       ; Holding something turns B into a throw: the foot only has room for
+        ; one thing between its toes at a time.
+        lda p_carry
+        beq @free
+        lda pad1
+        and #BTN_DOWN
+        bne @putdown
+        lda #ANIM_KICK
+        jsr player_anim_set
+        lda #10
+        sta p_timer
+        jsr carry_throw
+        lda #SFX_THROW
+        jmp sfx_play
+@putdown:
+        jsr carry_drop
+        lda #SFX_LAND
+        jmp sfx_play
+@free:
         lda pad1
         and #BTN_DOWN
         bne @stomp
@@ -764,6 +784,7 @@ shoe_stomp:     .byte $03,$01,$04,$02,$03,$01,$01,$06
         sta p_timer
         lda #ANIM_GRAB
         jsr player_anim_set
+        jsr grab_try
         lda #SFX_GRAB
         jmp sfx_play
 @done:  rts
@@ -1085,6 +1106,7 @@ shoe_stomp:     .byte $03,$01,$04,$02,$03,$01,$01,$06
         bcc @dead
         beq @dead
         sta p_hp
+        jsr carry_drop          ; a hit shakes anything loose from the toes
         lda #PSTATE_HURT
         sta p_state
         lda #24

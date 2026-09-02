@@ -5,6 +5,7 @@
 .include "ram.inc"
 .include "bg.inc"
 .include "levels.inc"
+.include "entities.inc"
 
 .import level_load, level_stream, level_anim, draw_full_screen
 .import player_init, player_update, player_draw, player_respawn
@@ -15,7 +16,11 @@
 .import entities_init, entities_update, entities_draw, spawn_check
 .import particles_update, particles_draw
 .import music_play, sfx_play, audio_stop
-.import boss_update, boss_draw, boss_trigger
+.import hud_text_at, hud_stage_label, txt_paused
+.import boss_update, boss_trigger, boss_draw
+.ifdef BF_DEBUG
+.import spawn_entity
+.endif
 
 .export play_enter, play_run, start_stage, reload_stage
 
@@ -42,12 +47,23 @@
 ; ---------------------------------------------------------------------------
 .ifdef BF_DEBUG
 ; ---------------------------------------------------------------------------
-; debug_keys -- only assembled by `make DEBUG=1`.
+; debug_keys -- only assembled by `make DEBUG=1`.  SELECT is the modifier.
 ;   SELECT + START   clear the stage outright
 ;   SELECT + B       hand over every piece of footwear
+;   SELECT + A       drop a rock at the player's toes
+;   SELECT + UP      toggle invulnerability
+;   SELECT + RIGHT   warp four metatiles forward
 ; ---------------------------------------------------------------------------
+; The invulnerability flag borrows a byte of obj_state rather than
+; adding one to the RAM map, which the release build would then carry.
+dbg_inv = obj_state + 15
+
 .proc debug_keys
-        lda pad1
+        lda dbg_inv
+        beq :+
+        lda #$FF
+        sta p_inv
+:       lda pad1
         and #BTN_SELECT
         beq @done
         lda pad1_new
@@ -58,9 +74,42 @@
         rts
 :       lda pad1_new
         and #BTN_B
-        beq @done
+        beq :+
         lda #$FF
         sta shoe_flags
+        rts
+:       lda pad1_new
+        and #BTN_UP
+        beq :+
+        lda dbg_inv
+        eor #1
+        sta dbg_inv
+        rts
+:       lda pad1_new
+        and #BTN_RIGHT
+        beq :+
+        lda px
+        clc
+        adc #64
+        sta px
+        lda px+1
+        adc #0
+        sta px+1
+        rts
+:       lda pad1_new
+        and #BTN_A
+        beq @done
+        lda px
+        clc
+        adc #10
+        sta ptr2
+        lda px+1
+        adc #0
+        sta ptr2+1
+        lda py
+        sta tmp7
+        lda #ET_ROCK
+        jsr spawn_entity
 @done:  rts
 .endproc
 .endif
@@ -200,6 +249,24 @@
         sta pause_flag
         lda #SFX_PAUSE
         jsr sfx_play
+        lda pause_flag
+        beq @unpause
+        ; The status bar does not scroll, so the notice goes there rather
+        ; than into the playfield, where it would slide away.
+        lda #$20
+        sta tmp2
+        lda #(32 + 13)
+        sta tmp3
+        lda #<txt_paused
+        sta ptr1
+        lda #>txt_paused
+        sta ptr1+1
+        jsr hud_text_at
+        jmp @nopause
+@unpause:
+        jsr hud_stage_label
+        lda #1
+        sta hud_dirty
 @nopause:
         lda pause_flag
         beq :+

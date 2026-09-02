@@ -407,10 +407,16 @@ def build(write, chr_rom=None):
     a.append('.segment "B00"\n')
     a.append("stage_bank:\n        .byte " +
              ",".join(str(STAGE_BANK0 + s.num) for s in STAGES) + "\n")
+    # Names go out as font glyph indices, not ASCII: the font is a 5x7 face
+    # laid out in its own order, so "THE LITTLE KINGDOM" as bytes would come
+    # out of the tile fetch as noise.
+    from gen_text import encode
     for s in STAGES:
-        a.append('stage_name%d: .byte "%s",0\n' % (s.num, s.name))
+        a.append('stage_name%d: .byte %s\n'
+                 % (s.num, ",".join(str(b) for b in encode(s.name))))
     for i, nm in enumerate(BOSS_NAMES):
-        a.append('boss_name%d: .byte "%s",0\n' % (i, nm))
+        a.append('boss_name%d: .byte %s\n'
+                 % (i, ",".join(str(b) for b in encode(nm))))
     a.append(".export boss_name_lo, boss_name_hi\n")
     a.append("boss_name_lo:\n        .lobytes " +
              ",".join("boss_name%d" % i for i in range(8)) + "\n")

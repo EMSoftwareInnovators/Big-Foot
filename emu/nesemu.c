@@ -301,6 +301,8 @@ static u8 pad_state[2], pad_shift[2], pad_strobe;
 static u8 pad_buttons[2];
 
 static u8 apu_regs[0x20];
+static u16 pcring[1024]; static int pcring_i;   /* recent PCs, printed on a jam */
+static int pcguard;             /* -guard: stop the moment the PC leaves ROM */
 static FILE *apulog;            /* -apulog: trace every APU register write */
 static u16 callat[8]; static int ncallat;   /* -callat: report A at a routine */
 static long apulog_from, apulog_to = -1;
@@ -832,7 +834,8 @@ int main(int argc, char **argv)
     const char *rompath = argv[1];
 
     for (int i = 2; i < argc; i++) {
-        if (!strcmp(argv[i], "-callat") && i + 1 < argc && ncallat < 8)
+        if (!strcmp(argv[i], "-guard")) pcguard = 1;
+        else if (!strcmp(argv[i], "-callat") && i + 1 < argc && ncallat < 8)
             callat[ncallat++] = (u16)strtol(argv[++i], 0, 16);
         else if (!strcmp(argv[i], "-apulog") && i + 2 < argc) {
             apulog = fopen(argv[++i], "w");
@@ -984,6 +987,11 @@ int main(int argc, char **argv)
             deltalast = total_cycles;
         }
         long c_before = total_cycles;
+        pcring[pcring_i++ & 1023] = pc0;
+        if (pcguard && pc0 < 0x8000) {
+            fprintf(stderr, "PC left ROM: $%04X at frame %ld\n", pc0, frame_count);
+            jam_flag = 3; break;
+        }
         cpu_step();
         if (hoton && pc0 >= 0xC000 && frame_count >= hotfrom && frame_count <= hotto)
             hot[(pc0 - 0xC000) >> 6] += total_cycles - c_before;
@@ -1017,6 +1025,12 @@ int main(int argc, char **argv)
     for (int i = 0; i < nshots; i++)
         if (shot_frame[i] >= 0 && shot_frame[i] < frames + 2) save_png(shot_name[i], scale);
 
+    if (jam_flag) {
+        printf("last 1024 PCs before the jam (oldest first):\n ");
+        for (int i = 1024; i > 0; i--)
+            printf(" %04X", pcring[(pcring_i - i) & 1023]);
+        printf("\n");
+    }
     if (apulog) fclose(apulog);
     if (dumpvram) {
         FILE *g = fopen(dumpvram, "wb");

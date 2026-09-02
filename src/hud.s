@@ -11,6 +11,7 @@
 
 .import vq_open, vq_close, stage_name_lo, stage_name_hi
 .export hud_draw_full, hud_update, hud_boss_bar, hud_text_at, hud_clear_rows
+.export hud_stage_label
 
 .segment "CODE"
 
@@ -109,6 +110,7 @@
         jsr set_addr
         ldx #0
 :       lda txt_stage,x
+        cmp #$FF
         beq :+
         clc
         adc #FONT_BASE
@@ -130,7 +132,7 @@
         lda #TILE_SHOE
         sta PPUDATA
         rts
-txt_stage: .byte 19,20,1,7,5,0          ; "STAGE"
+txt_stage: .byte 19,20,1,7,5,$FF        ; "STAGE"
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -200,6 +202,39 @@ txt_stage: .byte 19,20,1,7,5,0          ; "STAGE"
 
 ; ---------------------------------------------------------------------------
 ; hud_update -- queue the changing parts for the next NMI
+; ---------------------------------------------------------------------------
+; hud_stage_label -- queue "STAGE n" back into the status bar.  The pause
+; notice borrows those six columns, so something has to put them back.
+; ---------------------------------------------------------------------------
+.proc hud_stage_label
+        lda #$20
+        sta tmp2
+        lda #(32 + 13)
+        sta tmp3
+        lda #6
+        ldx #0
+        jsr vq_open
+        ldx #0
+:       lda hud_stage_txt,x
+        cmp #$FF
+        beq :+
+        clc
+        adc #FONT_BASE
+        sta vram_buf,y
+        iny
+        inx
+        bne :-
+:       lda stage_num
+        clc
+        adc #1
+        clc
+        adc #(FONT_BASE + 27)
+        sta vram_buf,y
+        iny
+        jmp vq_close
+hud_stage_txt: .byte 19,20,1,7,5,$FF    ; "STAGE"
+.endproc
+
 ; ---------------------------------------------------------------------------
 .proc hud_update
         lda hud_dirty
@@ -293,6 +328,7 @@ txt_stage: .byte 19,20,1,7,5,0          ; "STAGE"
 .proc hud_text_at
         ldy #0
 :       lda (ptr1),y
+        cmp #$FF
         beq :+
         iny
         cpy #28
