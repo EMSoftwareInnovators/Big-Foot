@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Compile the eight stages from chunk sequences into per-bank level data."""
 import chunks as CH
+from nesart import TileSet, Img
+from chrpack import grid_cells
 from chunks import W as CW, H as CHH
 from entdef import NAME2ID as E
 from nesart import asm_bytes
@@ -272,8 +274,43 @@ def compile_stage(st, theme):
     return mapdata, spawns, checkpoints, start, boss_col, cols
 
 
-def build(write):
-    import gen_bg
+SPRITE_BANK_BASE = 128          # R1 covers sprite tiles $80..$FF
+
+COMMON_OBJECTS = ["CRATE", "ARROW", "BOLT", "SPIT", "HEALTH", "SHOEBOX", "LIFE"]
+COMMON_FX = ["DUST", "SPARK", "SPLASH"]
+
+
+def pack_sprite_set(chr_rom, label, entries):
+    """entries: list of (type_id, [Img, ...], palette).
+    Returns (bank, ms_blob, offsets) where offsets[(type, frame)] is the
+    byte offset of that frame's metasprite record inside ms_blob."""
+    import gen_sprites
+    from entdef import ID2NAME
+    ts = TileSet(label, capacity=128)
+    blob = bytearray()
+    offsets = {}
+    for tid, frames, pal in entries:
+        name = ID2NAME[tid]
+        for fi, img in enumerate(frames):
+            ox, oy = gen_sprites.origin_of(name, img)
+            cells, x0, y0, w, h = grid_cells(img)
+            idx = []
+            for c in cells:
+                idx.append(0 if c is None else ts.add(c) + SPRITE_BANK_BASE)
+            offsets[(tid, fi)] = len(blob)
+            blob.append((x0 * 8 - ox) & 0xFF)
+            blob.append((y0 * 8 - oy) & 0xFF)
+            blob.append(w)
+            blob.append(h)
+            blob.append(pal & 3)
+            blob += bytes(idx)
+    bank = chr_rom.add_2k(label, ts.tiles)
+    return bank, bytes(blob), offsets, len(ts)
+
+
+def build(write, chr_rom=None):
+    import gen_bg, gen_sprites, figures
+    from entdef import NAME2ID, ID2NAME
     themes = gen_bg.build.themes
     out = []
     log = []
@@ -297,6 +334,43 @@ def build(write):
                                              st.bossmusic))
         a.append("        .byte " + ",".join(str(E[r]) for r in st.roster) + "\n")
 
+        # ---- sprite bank for this stage ------------------------------
+        entries = []
+        seen = set()
+        for nm in st.roster + [st.kick_object] + COMMON_OBJECTS + COMMON_FX:
+            if nm in seen:
+                continue
+            seen.add(nm)
+            art = gen_sprites.ENEMY_ART.get(nm) or gen_sprites.OBJECT_ART.get(nm)
+            if art is None:
+                continue
+            entries.append((NAME2ID[nm], art[0], art[1]))
+        ebank, eblob, eoff, etiles = pack_sprite_set(
+            chr_rom, "stage %d sprites" % st.num, entries)
+
+        # ---- boss bank ------------------------------------------------
+        bfn = BOSS_ART[st.boss]
+        bframes = [bfn(i) for i in range(BOSS_FRAMES[st.boss])]
+        bentries = [(NAME2ID["BOSS"], bframes, 1)]
+        for nm in COMMON_FX + ["SPARK", st.kick_object, "ARROW"]:
+            if nm in [x for x in ()] :
+                continue
+        seen2 = set()
+        for nm in COMMON_FX + [st.kick_object, "ARROW", "BOLT"]:
+            if nm in seen2:
+                continue
+            seen2.add(nm)
+            art = gen_sprites.OBJECT_ART.get(nm) or gen_sprites.ENEMY_ART.get(nm)
+            if art:
+                bentries.append((NAME2ID[nm], art[0], art[1]))
+        bbank, bblob, boff, btiles = pack_sprite_set(
+            chr_rom, "stage %d boss" % st.num, bentries)
+
+        a.append("        .byte %d, %d\n" % (ebank, bbank))
+        a.append("        .addr s%d_mslo, s%d_mshi\n" % (st.num, st.num))
+        a.append("        .addr s%d_bmslo, s%d_bmshi\n" % (st.num, st.num))
+        a.append("        .byte %d\n" % E[st.kick_object])
+
         sp = bytearray()
         for col, row, typ in spawns:
             sp += bytes([col & 0xFF, col >> 8, row, typ])
@@ -313,11 +387,17 @@ def build(write):
         a.append(asm_bytes("s%d_pal" % st.num, pal))
         a.append(asm_bytes("s%d_spawn" % st.num, bytes(sp)))
         a.append(asm_bytes("s%d_check" % st.num, bytes(cp)))
+        a.append(asm_bytes("s%d_msdata" % st.num, eblob))
+        a.append(asm_bytes("s%d_bmsdata" % st.num, bblob))
+        a.append(_ms_table("s%d_ms" % st.num, "s%d_msdata" % st.num, eoff))
+        a.append(_ms_table("s%d_bms" % st.num, "s%d_bmsdata" % st.num, boff))
         a.append(asm_bytes("s%d_map" % st.num, bytes(mapdata), per_line=16))
         write("level_s%d.s" % st.num, "".join(a))
-        total = len(mapdata) + len(theme.table) + len(pal) + len(sp) + len(cp)
-        log.append("stage %d %-26s %3d cols, %2d spawns, bank %d/8192 bytes\n"
-                   % (st.num, st.name, cols, len(spawns), total))
+        total = (len(mapdata) + len(theme.table) + len(pal) + len(sp) + len(cp)
+                 + len(eblob) + len(bblob) + 4 * ET_COUNT + 40)
+        log.append("stage %d %-26s %3d cols %2d spawns  bank %4d/8192  "
+                   "spr %3d/128 boss %3d/128\n"
+                   % (st.num, st.name, cols, len(spawns), total, etiles, btiles))
         out.append(st)
 
     a = ['; Generated by tools/gen_levels.py -- do not edit.\n']
@@ -327,6 +407,13 @@ def build(write):
              ",".join(str(2 + s.num) for s in STAGES) + "\n")
     for s in STAGES:
         a.append('stage_name%d: .byte "%s",0\n' % (s.num, s.name))
+    for i, nm in enumerate(BOSS_NAMES):
+        a.append('boss_name%d: .byte "%s",0\n' % (i, nm))
+    a.append(".export boss_name_lo, boss_name_hi\n")
+    a.append("boss_name_lo:\n        .lobytes " +
+             ",".join("boss_name%d" % i for i in range(8)) + "\n")
+    a.append("boss_name_hi:\n        .hibytes " +
+             ",".join("boss_name%d" % i for i in range(8)) + "\n")
     a.append("stage_name_lo:\n        .lobytes " +
              ",".join("stage_name%d" % s.num for s in STAGES) + "\n")
     a.append("stage_name_hi:\n        .hibytes " +
@@ -336,3 +423,56 @@ def build(write):
     inc = ["NUM_STAGES = %d\n" % len(STAGES)]
     write("levels.inc", "".join(inc))
     return "".join(log)
+
+
+# ---------------------------------------------------------------------------
+from entdef import ENTITIES
+ET_COUNT = len(ENTITIES)
+MAX_FRAMES = 4
+
+
+def _ms_table(label, blob, offsets):
+    """Flat [type * 4 + frame] -> metasprite pointer tables."""
+    lo, hi = [], []
+    for t in range(ET_COUNT):
+        for f in range(MAX_FRAMES):
+            key = (t, f)
+            if key not in offsets:
+                key = (t, 0)
+            if key in offsets:
+                lo.append("%s+%d" % (blob, offsets[key]))
+                hi.append("%s+%d" % (blob, offsets[key]))
+            else:
+                lo.append("0")
+                hi.append("0")
+    out = ["%slo:\n" % label]
+    for i in range(0, len(lo), 8):
+        out.append("        .lobytes " + ",".join(lo[i:i + 8]) + "\n")
+    out.append("%shi:\n" % label)
+    for i in range(0, len(hi), 8):
+        out.append("        .hibytes " + ",".join(hi[i:i + 8]) + "\n")
+    return "".join(out)
+
+
+def _boss_art():
+    import figures as F
+    from foot import Pose, render_foot
+    import shoes
+
+    def left_foot(i):
+        poses = [Pose(heel=0.30), Pose(heel=0.60, curl=0.5),
+                 Pose(toe=0.30), Pose(squash=0.72, stretch=1.18),
+                 Pose(angle=-0.5, dy=-6)]
+        return render_foot(poses[i % len(poses)])
+
+    return ([F.boss_ironboot, F.boss_huntsman, F.boss_warboot, F.boss_troll,
+             F.boss_toebreaker, F.boss_archbishop, F.boss_warmachine,
+             left_foot],
+            [3, 3, 3, 2, 3, 3, 3, 5])
+
+
+BOSS_ART, BOSS_FRAMES = _boss_art()
+BOSS_NAMES = ["CAPTAIN IRONBOOT", "THE ROYAL HUNTSMAN", "THE WAR BOOT",
+              "THE MARSH TROLL", "THE TOE BREAKER",
+              "THE ARCHBISHOP OF PODIATRY", "THE KING'S WAR MACHINE",
+              "LEFT FOOT"]

@@ -16,6 +16,8 @@
 ; ---------------------------------------------------------------------------
 .proc ppu_off
         lda #0
+        sta MMC3_IRQDISABLE
+        lda #0
         sta render_on
         sta split_on
         sta nmi_ready

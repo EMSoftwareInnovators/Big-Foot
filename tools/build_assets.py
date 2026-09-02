@@ -47,19 +47,11 @@ def main():
         write("bg_data.s", "; not generated yet\n")
         write("bg.inc", "")
 
-    try:
-        import gen_sprites
-        log.append(gen_sprites.build(chr_rom, write))
-    except ImportError:
-        write("sprite_data.s", "; not generated yet\n")
-        write("sprites.inc", "")
+    import gen_entities
+    log.append(gen_entities.build(write))
 
-    try:
-        import gen_levels
-        log.append(gen_levels.build(write))
-    except ImportError:
-        write("level_data.s", "; not generated yet\n")
-        write("levels.inc", "")
+    import gen_levels
+    log.append(gen_levels.build(write, chr_rom))
 
     try:
         import gen_music

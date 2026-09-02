@@ -9,11 +9,13 @@
 .include "constants.inc"
 .include "ram.inc"
 .include "player_frames.inc"
+.include "entities.inc"
 
 .import flags_at_xy, mt_at, break_tile, rand
 .import pf_bank, pf_ms_lo, pf_ms_hi, pf_remap, panim_tbl_lo, panim_tbl_hi
 .import draw_metasprite, spr_set_world, shake_start
-.import sfx_play, spawn_particle, player_attack_box, entity_hurt_area
+.import sfx_play, spawn_particle, entity_hurt_area
+.import boss_hit_test, boss_damage
 .import set_prga000
 
 .export player_init, player_update, player_draw, player_anim_set
@@ -222,9 +224,184 @@ shoe_stomp:     .byte $03,$01,$04,$02,$03,$01,$01,$06
         jsr read_ground
         jsr do_input
         jsr apply_physics
+        jsr player_attack
         jsr anim_select
         jsr anim_tick
         rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; player_attack -- open the damage window for the current attack.
+;
+; The foot IS the weapon, so every attack is a box anchored to the sole or
+; the toes rather than a separate projectile.
+; ---------------------------------------------------------------------------
+.proc player_attack
+        lda p_state
+        cmp #PSTATE_KICK
+        beq @kick
+        cmp #PSTATE_STOMP
+        beq @stomp
+        cmp #PSTATE_AIRSTOMP
+        beq @dive
+        cmp #PSTATE_LAND
+        beq @land
+        rts
+
+@ret:   rts
+@kick:
+        lda p_timer
+        cmp #14
+        bcs @ret
+        cmp #7
+        bcc @ret
+        lda p_kickhit
+        bne @ret
+        inc p_kickhit
+        ; a box in front of the toes
+        lda p_face
+        bne @kleft
+        lda px
+        clc
+        adc #2
+        sta atk_x1
+        lda px+1
+        adc #0
+        sta atk_x1+1
+        lda px
+        clc
+        adc #36
+        sta atk_x2
+        lda px+1
+        adc #0
+        sta atk_x2+1
+        jmp @kbox
+@kleft:
+        lda px
+        sec
+        sbc #36
+        sta atk_x1
+        lda px+1
+        sbc #0
+        sta atk_x1+1
+        lda px
+        sec
+        sbc #2
+        sta atk_x2
+        lda px+1
+        sbc #0
+        sta atk_x2+1
+@kbox:
+        lda py
+        sec
+        sbc #26
+        sta atk_y1
+        lda py
+        sta atk_y2
+        ldx p_shoe
+        lda shoe_kick,x
+        sta atk_dmg
+        lda #0
+        sta atk_kind
+        jsr strike
+        rts
+
+@stomp:
+        lda p_timer
+        cmp #14
+        bne @ret
+        jmp do_stomp
+
+@dive:
+        rts
+
+@land:
+        lda p_bounce
+        beq @ret
+        lda #0
+        sta p_bounce
+        jsr do_stomp
+        ; the shockwave kicks the foot back into the air a little
+        lda #<$FE40
+        sta vy
+        lda #>$FE40
+        sta vy+1
+        lda #0
+        sta p_ground
+        rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; do_stomp -- ground shockwave: a wide, short box centred on the sole
+; ---------------------------------------------------------------------------
+.proc do_stomp
+        lda px
+        sec
+        sbc #26
+        sta atk_x1
+        lda px+1
+        sbc #0
+        sta atk_x1+1
+        lda px
+        clc
+        adc #26
+        sta atk_x2
+        lda px+1
+        adc #0
+        sta atk_x2+1
+        lda py
+        sec
+        sbc #14
+        sta atk_y1
+        lda py
+        clc
+        adc #8
+        sta atk_y2
+        ldx p_shoe
+        lda shoe_stomp,x
+        sta atk_dmg
+        lda #1
+        sta atk_kind
+        jsr strike
+        jsr break_below
+        ; dust to both sides
+        lda px
+        sec
+        sbc #18
+        sta ptr2
+        lda px+1
+        sbc #0
+        sta ptr2+1
+        lda py
+        sta tmp7
+        lda #ET_DUST
+        jsr spawn_particle
+        lda px
+        clc
+        adc #18
+        sta ptr2
+        lda px+1
+        adc #0
+        sta ptr2+1
+        lda py
+        sta tmp7
+        lda #ET_DUST
+        jsr spawn_particle
+        lda #8
+        ldx #3
+        jmp shake_start
+.endproc
+
+; ---------------------------------------------------------------------------
+; strike -- apply the current attack box to entities and to the boss
+; ---------------------------------------------------------------------------
+.proc strike
+        jsr entity_hurt_area
+        jsr boss_hit_test
+        bcc @done
+        lda atk_dmg
+        jsr boss_damage
+@done:  rts
 .endproc
 
 ; ---------------------------------------------------------------------------

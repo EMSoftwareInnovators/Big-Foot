@@ -79,69 +79,94 @@ ZERO PAGE $0000-$00FF
   $56  stream_side      1
   $57  theme            1
   $58  spawn_cur        1
-  $59  spawn_ptr        2
-  $5B  mt_ptr           2
-  $5D  hdr_ptr          2
-  $5F  check_ptr        2
-  $61  roster_ptr       2
-  $63  boss_col         2
-  $65  stream_state     1
-  $66  stream_col       2
-  $68  dmg_count        1
-  $69  start_col        2
-  $6B  start_row        1
-  $6C  boss_id          1
-  $6D  stage_shoe       1
-  $6E  boss_music       1
-  $6F  level_music      1
-  $70  anim_bank        1
-  $71  anim_timer       1
-  $72  px               2
-  $74  px_sub           1
-  $75  py               2
-  $77  py_sub           1
-  $78  vx               2
-  $7A  vy               2
-  $7C  p_state          1
-  $7D  p_anim           1
-  $7E  p_frame          1
-  $7F  p_atimer         1
-  $80  p_face           1
-  $81  p_ground         1
-  $82  p_wasground      1
-  $83  p_hp             1
-  $84  p_hp_max         1
-  $85  p_inv            1
-  $86  p_shoe           1
-  $87  p_coyote         1
-  $88  p_jumpbuf        1
-  $89  p_jumphold       1
-  $8A  p_timer          1
-  $8B  p_carry          1
-  $8C  p_ground_type    1
-  $8D  p_inwater        1
-  $8E  p_stompcharge    1
-  $8F  p_recoil         1
-  $90  p_walkdist       1
-  $91  p_flash          1
-  $92  p_curframe       1
-  $93  p_kickhit        1
-  $94  p_bounce         1
-  $95  p_shoetimer      1
-  $96  boss_active      1
-  $97  boss_hp          1
-  $98  boss_maxhp       1
-  $99  boss_phase       1
-  $9A  boss_timer       1
-  $9B  boss_state       1
-  $9C  boss_flash       1
-  $9D  mus_song         1
-  $9E  mus_tick         1
-  $9F  mus_speed        1
-  $A0  sfx_req          1
-  $A1  aud_tmp          1
-  $A2  hud_dirty        1
-  $A3  score            3
+  $59  cur_ent          1
+  $5A  atk_x1           2
+  $5C  atk_x2           2
+  $5E  atk_y1           1
+  $5F  atk_y2           1
+  $60  atk_dmg          1
+  $61  atk_kind         1
+  $62  enemy_chr        1
+  $63  boss_chr         1
+  $64  kick_type        1
+  $65  ent_tmp          1
+  $66  ent_tmp2         1
+  $67  spawn_ptr        2
+  $69  mt_ptr           2
+  $6B  mt_tr            2
+  $6D  mt_bl            2
+  $6F  mt_br            2
+  $71  mt_at_p          2
+  $73  mt_fl_p          2
+  $75  col_base         2
+  $77  mtc_col          2
+  $79  mtc_row          1
+  $7A  mtc_val          1
+  $7B  ms_lo_ptr        2
+  $7D  ms_hi_ptr        2
+  $7F  bms_lo_ptr       2
+  $81  bms_hi_ptr       2
+  $83  hdr_ptr          2
+  $85  check_ptr        2
+  $87  roster_ptr       2
+  $89  boss_col         2
+  $8B  stream_state     1
+  $8C  stream_col       2
+  $8E  dmg_count        1
+  $8F  start_col        2
+  $91  start_row        1
+  $92  boss_id          1
+  $93  stage_shoe       1
+  $94  boss_music       1
+  $95  level_music      1
+  $96  anim_bank        1
+  $97  anim_timer       1
+  $98  px               2
+  $9A  px_sub           1
+  $9B  py               2
+  $9D  py_sub           1
+  $9E  vx               2
+  $A0  vy               2
+  $A2  p_state          1
+  $A3  p_anim           1
+  $A4  p_frame          1
+  $A5  p_atimer         1
+  $A6  p_face           1
+  $A7  p_ground         1
+  $A8  p_wasground      1
+  $A9  p_hp             1
+  $AA  p_hp_max         1
+  $AB  p_inv            1
+  $AC  p_shoe           1
+  $AD  p_coyote         1
+  $AE  p_jumpbuf        1
+  $AF  p_jumphold       1
+  $B0  p_timer          1
+  $B1  p_carry          1
+  $B2  p_ground_type    1
+  $B3  p_inwater        1
+  $B4  p_stompcharge    1
+  $B5  p_recoil         1
+  $B6  p_walkdist       1
+  $B7  p_flash          1
+  $B8  p_curframe       1
+  $B9  p_kickhit        1
+  $BA  p_bounce         1
+  $BB  p_shoetimer      1
+  $BC  boss_active      1
+  $BD  boss_hp          1
+  $BE  boss_maxhp       1
+  $BF  boss_phase       1
+  $C0  boss_timer       1
+  $C1  boss_state       1
+  $C2  boss_flash       1
+  $C3  mus_song         1
+  $C4  mus_tick         1
+  $C5  mus_speed        1
+  $C6  sfx_req          1
+  $C7  aud_tmp          1
+  $C8  hud_dirty        1
+  $C9  score            3
 
 BSS $0300-$07FF
   $300  vram_buf         176
@@ -166,12 +191,15 @@ BSS $0300-$07FF
   $484  e_hurt           12
   $490  e_sub            12
   $49C  e_slot           12
-  $4A8  pa_type          10
-  $4B2  pa_x             10
-  $4BC  pa_y             10
-  $4C6  pa_vx            10
-  $4D0  pa_vy            10
-  $4DA  pa_tmr           10
+  $4A8  e_dir            12
+  $4B4  pa_type          6
+  $4BA  pa_xl            6
+  $4C0  pa_xh            6
+  $4C6  pa_y             6
+  $4CC  pa_vx            6
+  $4D2  pa_vy            6
+  $4D8  pa_tmr           6
+  $4DE  pa_frm           6
   $4E4  spawn_used       12
   $4F0  tile_dmg         24
   $508  column_buf       16
@@ -205,7 +233,16 @@ BSS $0300-$07FF
   $56E  mus_ptr          2
   $570  mus_len          1
   $571  obj_state        16
-  $581  scratch          32
+  $581  boss_x           2
+  $583  boss_y           2
+  $585  boss_vx          2
+  $587  boss_vy          2
+  $589  boss_frm         1
+  $58A  boss_sub         1
+  $58B  boss_atk         1
+  $58C  boss_dir         1
+  $58D  boss_anchor      2
+  $58F  scratch          32
 
-zero page used : 166 / 256
-BSS used       : 673 / 1280 (ends $05A1)
+zero page used : 204 / 256
+BSS used       : 687 / 1280 (ends $05AF)

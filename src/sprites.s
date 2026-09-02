@@ -27,23 +27,9 @@ SPR0_X  = 248
 ; oam_reset -- start a frame's sprite list
 ; ---------------------------------------------------------------------------
 .proc oam_reset
-        lda split_on
-        beq @nosplit
-        lda #SPR0_Y
-        sta oam_buf+0
-        lda #PLAYER_SPR0_TILE
-        sta oam_buf+1
-        lda #$20                        ; behind background, palette 0
-        sta oam_buf+2
-        lda #SPR0_X
-        sta oam_buf+3
-        lda #4
-        sta oam_idx
-        rts
-@nosplit:
-        lda #$FF
-        sta oam_buf+0
-        lda #4
+        lda #$F8
+        sta oam_buf+0                   ; entry 0 is no longer reserved
+        lda #0
         sta oam_idx
         rts
 .endproc
@@ -129,11 +115,10 @@ SPR0_X  = 248
         iny
         lda (ptr1),y                    ; attr
         ora spr_attr
+        ora spr_flip
         sta tmp4
-        iny
-        sty tmp5                        ; index of the first tile byte
 
-        ; ---- starting screen X ------------------------------------------
+        ; ---- screen X of the leftmost cell, and the per-cell step --------
         lda spr_flip
         bne @flip
         lda tmp0
@@ -148,28 +133,45 @@ SPR0_X  = 248
         adc spr_x+1
         sta tmp7
         lda #8
-        sta tmp8                        ; column step
+        sta tmp5
+        lda #0
+        sta tmp8
         jmp @ystart
 @flip:
-        ; mirrored: x = origin - dx - w*8
+        ; mirrored: the row starts at origin - dx - 8 and walks backwards
+        lda tmp0
+        bpl :+
+        ldx #$FF
+        bne :++
+:       ldx #0
+:       clc
+        adc spr_x
+        sta tmp6
+        txa
+        adc spr_x+1
+        sta tmp7
         lda tmp2
         asl a
         asl a
         asl a
-        clc
-        adc tmp0
-        sta tmp9
-        lda #0
-        sbc #0
         sta tmpA
-        lda spr_x
-        sec
-        sbc tmp9
+        lda tmp6
+        clc
+        adc tmpA
         sta tmp6
-        lda spr_x+1
+        lda tmp7
+        adc #0
+        sta tmp7
+        lda tmp6
+        sec
+        sbc #8
+        sta tmp6
+        lda tmp7
         sbc #0
         sta tmp7
-        lda #8
+        lda #$F8
+        sta tmp5
+        lda #$FF
         sta tmp8
 @ystart:
         lda tmp1
@@ -177,102 +179,124 @@ SPR0_X  = 248
         adc spr_y
         sta tmp9                        ; screen Y of the first row
 
-        ldx #0                          ; row counter
-@row:   stx tmpB
-        ldy #0                          ; column counter
-@col:   sty tmpC
-        ; tile index = tiles[row * w + col]
-        lda tmpB
-        beq @noskip
-        sta tmpD
+        ; Decide once whether every cell lands inside the screen; if so the
+        ; per-cell high byte never changes and the fast loop applies.
         lda #0
-@mul:   clc
-        adc tmp2
-        dec tmpD
-        bne @mul
-        jmp @havebase
-@noskip:
+        sta tmpA
+        lda spr_flip
+        bne @slowpath
+        lda tmp7
+        bne @slowpath
+        lda tmp2
+        asl a
+        asl a
+        asl a
+        clc
+        adc tmp6
+        bcs @slowpath
+        lda #1
+        sta tmpA
+@slowpath:
+        ldy #5                          ; cursor into the tile stream
         lda #0
-@havebase:
-        clc
-        adc tmpC
-        clc
-        adc tmp5
-        tay
-        lda (ptr1),y
-        beq @next
-        sta tmpE                        ; tile
-
-        ; screen Y for this row
+        sta tmpB                        ; row
+@row:
         lda tmpB
         asl a
         asl a
         asl a
         clc
         adc tmp9
-        sta tmpF
         cmp #$F0
-        bcs @next
-        cmp #8
-        bcc @next
-
-        ; screen X for this column
-        lda spr_flip
-        bne @fx
-        lda tmpC
-        asl a
-        asl a
-        asl a
-        clc
-        adc tmp6
-        sta tmpD
-        lda tmp7
-        adc #0
-        bne @next                       ; off screen left or right
-        jmp @emit
-@fx:    lda tmp2
-        sec
-        sbc tmpC
-        sec
+        bcc :+
+        jmp @skiprow
+:       cmp #8
+        bcs :+
+        jmp @skiprow
+:       sec
         sbc #1
-        asl a
-        asl a
-        asl a
-        clc
-        adc tmp6
-        sta tmpD
+        sta tmpF                        ; OAM Y for this row (screen Y - 1)
+        lda tmp6
+        sta tmpD                        ; running screen X
         lda tmp7
-        adc #0
-        bne @next
-@emit:
+        sta tmpE
+        ldx tmp2                        ; columns remaining
+        lda tmpA
+        beq @col
+        jmp @fast
+@col:
+        lda (ptr1),y
+        beq @step
+        sta tmpA
+        lda tmpE
+        bne @step                       ; this cell is off screen horizontally
+        stx tmpC
         ldx oam_idx
         cpx #252
-        bcs @done
+        bcs @full
         lda tmpF
-        sec
-        sbc #1
         sta oam_buf,x
-        inx
-        lda tmpE
-        sta oam_buf,x
-        inx
+        lda tmpA
+        sta oam_buf+1,x
         lda tmp4
-        ora spr_flip
-        sta oam_buf,x
-        inx
+        sta oam_buf+2,x
         lda tmpD
-        sta oam_buf,x
-        inx
-        stx oam_idx
-@next:
-        ldy tmpC
+        sta oam_buf+3,x
+        txa
+        clc
+        adc #4
+        sta oam_idx
+@full:  ldx tmpC
+@step:
         iny
-        cpy tmp2
-        bcs :+
-        jmp @col
-:       ldx tmpB
-        inx
-        cpx tmp3
+        lda tmpD
+        clc
+        adc tmp5
+        sta tmpD
+        lda tmpE
+        adc tmp8
+        sta tmpE
+        dex
+        bne @col
+        jmp @nextrow
+@fast:
+        lda (ptr1),y
+        beq @fstep
+        stx tmpC
+        ldx oam_idx
+        cpx #252
+        bcs @fdone
+        sta oam_buf+1,x
+        lda tmpF
+        sta oam_buf,x
+        lda tmp4
+        sta oam_buf+2,x
+        lda tmpD
+        sta oam_buf+3,x
+        txa
+        clc
+        adc #4
+        sta oam_idx
+@fdone: ldx tmpC
+@fstep:
+        iny
+        lda tmpD
+        clc
+        adc #8
+        sta tmpD
+        dex
+        bne @fast
+        jmp @nextrow
+
+@skiprow:
+        tya
+        clc
+        adc tmp2
+        tay
+@nextrow:
+        inc tmpB
+        lda tmpB
+        cmp tmp3
         bcs @done
         jmp @row
 @done:  rts

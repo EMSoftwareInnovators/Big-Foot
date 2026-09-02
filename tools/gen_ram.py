@@ -13,7 +13,7 @@ NES RAM budget:
 import os
 
 MAX_ENTITIES = 12
-MAX_PARTICLES = 10
+MAX_PARTICLES = 6
 
 # (name, size)  -- zero page
 ZP = [
@@ -81,8 +81,33 @@ ZP = [
     ("stream_side", 1),
     ("theme", 1),
     ("spawn_cur", 1),
+    ("cur_ent", 1),
+    ("atk_x1", 2),
+    ("atk_x2", 2),
+    ("atk_y1", 1),
+    ("atk_y2", 1),
+    ("atk_dmg", 1),
+    ("atk_kind", 1),
+    ("enemy_chr", 1),
+    ("boss_chr", 1),
+    ("kick_type", 1),
+    ("ent_tmp", 1),
+    ("ent_tmp2", 1),
     ("spawn_ptr", 2),
     ("mt_ptr", 2),
+    ("mt_tr", 2),
+    ("mt_bl", 2),
+    ("mt_br", 2),
+    ("mt_at_p", 2),
+    ("mt_fl_p", 2),
+    ("col_base", 2),
+    ("mtc_col", 2),
+    ("mtc_row", 1),
+    ("mtc_val", 1),
+    ("ms_lo_ptr", 2),
+    ("ms_hi_ptr", 2),
+    ("bms_lo_ptr", 2),
+    ("bms_hi_ptr", 2),
     ("hdr_ptr", 2),
     ("check_ptr", 2),
     ("roster_ptr", 2),
@@ -171,13 +196,16 @@ BSS = [
     ("e_hurt", MAX_ENTITIES),
     ("e_sub", MAX_ENTITIES),
     ("e_slot", MAX_ENTITIES),   # spawn-list slot that produced this entity
+    ("e_dir", MAX_ENTITIES),
     # particles -----------------------------------------------------------
     ("pa_type", MAX_PARTICLES),
-    ("pa_x", MAX_PARTICLES),
+    ("pa_xl", MAX_PARTICLES),
+    ("pa_xh", MAX_PARTICLES),
     ("pa_y", MAX_PARTICLES),
     ("pa_vx", MAX_PARTICLES),
     ("pa_vy", MAX_PARTICLES),
     ("pa_tmr", MAX_PARTICLES),
+    ("pa_frm", MAX_PARTICLES),
     # level bookkeeping ---------------------------------------------------
     ("spawn_used", 12),         # bitmap, 96 spawn slots per stage
     ("tile_dmg", 24),           # up to 8 broken tiles: col_lo, col_hi, row
@@ -215,6 +243,15 @@ BSS = [
     ("mus_len", 1),
     # misc ----------------------------------------------------------------
     ("obj_state", 16),          # per-room switch / door state
+    ("boss_x", 2),
+    ("boss_y", 2),
+    ("boss_vx", 2),
+    ("boss_vy", 2),
+    ("boss_frm", 1),
+    ("boss_sub", 1),
+    ("boss_atk", 1),
+    ("boss_dir", 1),
+    ("boss_anchor", 2),
     ("scratch", 32),
 ]
 

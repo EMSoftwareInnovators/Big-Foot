@@ -30,7 +30,7 @@
         pha
 
         lda nmi_ready
-        beq @light
+        beq @noupdate
 
         ; ---- sprite DMA -------------------------------------------------
         lda #0
@@ -46,7 +46,13 @@
         beq :+
         jsr apply_chr
 :
+        lda #0
+        sta nmi_ready
+@noupdate:
         ; ---- rendering flags --------------------------------------------
+        ; These run on every NMI, not just on frames the main loop finished:
+        ; if the HUD scroll were skipped the status bar would slide with the
+        ; playfield whenever a frame overruns.
         lda ppu_mask
         sta PPUMASK
         lda ppu_ctrl
@@ -56,15 +62,23 @@
         sta PPUSCROLL
         sta PPUSCROLL
 
+        ; ---- arm the scanline split -------------------------------------
+        ; The MMC3 counter clocks once per scanline off the PPU's A12 line
+        ; (background patterns live at $1000, sprites at $0000), so latching
+        ; 29 here fires the IRQ just before the playfield starts.
         lda split_on
         beq @nosplit
         lda render_on
         beq @nosplit
-        jsr do_split
+        lda #29
+        sta MMC3_IRQLATCH
+        sta MMC3_IRQRELOAD
+        sta MMC3_IRQENABLE
+        jmp @armed
 @nosplit:
         lda #0
-        sta nmi_ready
-@light:
+        sta MMC3_IRQDISABLE
+@armed:
         inc nmi_count
         inc frame_count
         jsr audio_tick
@@ -75,41 +89,6 @@
         tax
         pla
         rti
-.endproc
-
-; ---------------------------------------------------------------------------
-; do_split -- wait for the sprite-0 hit, then hand the rest of the frame to
-; the scrolled playfield.  Both waits are bounded so a missing hit can only
-; cost one frame instead of hanging the machine.
-; ---------------------------------------------------------------------------
-.proc do_split
-        ldx #8                  ; wait for the stale hit flag to clear
-@clr:   ldy #0
-@clr1:  bit PPUSTATUS
-        bvc @hit
-        dey
-        bne @clr1
-        dex
-        bne @clr
-        rts
-@hit:   ldx #8                  ; wait for this frame's hit
-@wait:  ldy #0
-@wait1: bit PPUSTATUS
-        bvs @done
-        dey
-        bne @wait1
-        dex
-        bne @wait
-        rts
-@done:
-        lda ppu_ctrl
-        ora scroll_nt
-        sta PPUCTRL
-        lda scroll_x
-        sta PPUSCROLL
-        lda #0
-        sta PPUSCROLL
-        rts
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -172,9 +151,24 @@
 .endproc
 
 ; ---------------------------------------------------------------------------
-; irq_handler -- unused (the MMC3 IRQ stays disabled)
+; irq_handler -- the HUD/playfield split.
+;
+; Fires in the hblank after scanline 29.  Everything above stays at scroll
+; (0,0) from nametable 0; from here down the playfield scroll takes over.
+; The handler is deliberately tiny: it must finish inside hblank.
 ; ---------------------------------------------------------------------------
 .proc irq_handler
+        pha
+        lda #0
+        sta MMC3_IRQDISABLE             ; acknowledge
+        lda ppu_ctrl
+        ora scroll_nt
+        sta PPUCTRL
+        lda scroll_x
+        sta PPUSCROLL
+        lda #0
+        sta PPUSCROLL
+        pla
         rti
 .endproc
 

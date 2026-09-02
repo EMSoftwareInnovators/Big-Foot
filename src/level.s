@@ -112,12 +112,51 @@
         sta boss_music
         iny
         tya
+        pha
         clc
         adc hdr_ptr
         sta roster_ptr
         lda hdr_ptr+1
         adc #0
         sta roster_ptr+1
+        pla
+        clc
+        adc #6                          ; skip the six roster bytes
+        tay
+        lda (hdr_ptr),y
+        sta enemy_chr
+        iny
+        lda (hdr_ptr),y
+        sta boss_chr
+        iny
+        lda (hdr_ptr),y
+        sta ms_lo_ptr
+        iny
+        lda (hdr_ptr),y
+        sta ms_lo_ptr+1
+        iny
+        lda (hdr_ptr),y
+        sta ms_hi_ptr
+        iny
+        lda (hdr_ptr),y
+        sta ms_hi_ptr+1
+        iny
+        lda (hdr_ptr),y
+        sta bms_lo_ptr
+        iny
+        lda (hdr_ptr),y
+        sta bms_lo_ptr+1
+        iny
+        lda (hdr_ptr),y
+        sta bms_hi_ptr
+        iny
+        lda (hdr_ptr),y
+        sta bms_hi_ptr+1
+        iny
+        lda (hdr_ptr),y
+        sta kick_type
+        lda enemy_chr
+        sta chr_bank_hi
 
         ; ---- palettes -------------------------------------------------
         lda ptr1
@@ -145,10 +184,41 @@
         sta chr_bg3
         jsr apply_chr
 
+        jsr mt_setup
+
+        lda #$FF
+        sta mtc_row
         lda #0
         sta dmg_count
         sta stream_state
         sta anim_timer
+        rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; mt_setup -- cache pointers to the five metatile sub-tables so that lookups
+; are a single indexed indirect load instead of an add chain.
+; ---------------------------------------------------------------------------
+.proc mt_setup
+        lda mt_ptr
+        clc
+        adc #64
+        sta mt_tr
+        lda mt_ptr+1
+        adc #0
+        sta mt_tr+1
+        ldx #0
+:       lda mt_tr,x
+        clc
+        adc #64
+        sta mt_bl,x
+        lda mt_tr+1,x
+        adc #0
+        sta mt_bl+1,x
+        inx
+        inx
+        cpx #8
+        bcc :-
         rts
 .endproc
 
@@ -187,6 +257,46 @@
 ; mt_at -- tmp0/tmp1 = column, tmp2 = row.  Returns the metatile index in A.
 ; Columns outside the level read as solid so the player cannot walk out.
 ; ---------------------------------------------------------------------------
+; ---------------------------------------------------------------------------
+; mt_col_base -- tmp0/tmp1 = column, sets col_base = map + column * 16.
+; Callers that walk a whole column use this once and then index by row.
+; ---------------------------------------------------------------------------
+.proc mt_col_base
+        lda tmp0
+        asl a
+        asl a
+        asl a
+        asl a
+        clc
+        adc map_ptr
+        sta col_base
+        lda tmp0
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        sta tmp3
+        lda tmp1
+        asl a
+        asl a
+        asl a
+        asl a
+        ora tmp3
+        adc map_ptr+1
+        sta col_base+1
+        rts
+.endproc
+
+; mt_col_at -- Y = row, metatile of the cached column in A
+.proc mt_col_at
+        cpy #PLAY_ROWS
+        bcs @open
+        lda (col_base),y
+        rts
+@open:  lda #0
+        rts
+.endproc
+
 .proc mt_at
         lda tmp1
         bmi @solid
@@ -242,22 +352,48 @@
 ; ---------------------------------------------------------------------------
 ; mt_flags_at -- as mt_at but returns the collision class in A
 ; ---------------------------------------------------------------------------
+; ---------------------------------------------------------------------------
+; mt_flags_at -- collision class of the metatile at tmp0/tmp1 (column),
+; tmp2 (row).  A one-entry cache absorbs the many repeated probes an entity
+; makes into the same tile within a frame.
+; ---------------------------------------------------------------------------
 .proc mt_flags_at
+        lda tmp2
+        cmp mtc_row
+        bne @miss
+        lda tmp0
+        cmp mtc_col
+        bne @miss
+        lda tmp1
+        cmp mtc_col+1
+        bne @miss
+        lda mtc_val
+        rts
+@miss:
+        lda tmp0
+        sta mtc_col
+        lda tmp1
+        sta mtc_col+1
+        lda tmp2
+        sta mtc_row
+        jsr mt_flags_calc
+        sta mtc_val
+        rts
+.endproc
+
+.proc mt_flags_calc
         jsr mt_at
         cmp #$FF
         beq @wall
         tay
-        lda mt_ptr
-        clc
-        adc #<320
-        sta ptr3
-        lda mt_ptr+1
-        adc #>320
-        sta ptr3+1
-        lda (ptr3),y
+        lda (mt_fl_p),y
         cmp #COL_BREAK
         bne @out
+        txa
+        pha
         jsr is_broken
+        pla
+        tax
         bcc @out
         lda #COL_EMPTY
 @out:   rts
@@ -271,17 +407,24 @@
 ; ---------------------------------------------------------------------------
 .proc flags_at_xy
         lda ptr0
+        lsr a
+        lsr a
+        lsr a
+        lsr a
         sta tmp0
         lda ptr0+1
+        asl a
+        asl a
+        asl a
+        asl a
+        ora tmp0
+        sta tmp0
+        lda ptr0+1
+        lsr a
+        lsr a
+        lsr a
+        lsr a
         sta tmp1
-        lsr tmp1
-        ror tmp0
-        lsr tmp1
-        ror tmp0
-        lsr tmp1
-        ror tmp0
-        lsr tmp1
-        ror tmp0
         lda tmp4
         lsr a
         lsr a
@@ -311,6 +454,8 @@
         lda tmp2
         sta tile_dmg+2,x
         inc dmg_count
+        lda #$FF
+        sta mtc_row
         rts
 .endproc
 
@@ -375,74 +520,72 @@
 ; draw_column_tiles -- queue both 8-pixel tile columns of metatile column
 ; tmp0/tmp1.  Uses increment-by-32 so each packet is one vertical strip.
 ; ---------------------------------------------------------------------------
-.proc draw_column_tiles
-        jsr column_addr
+.proc draw_column_left
+        lda #0
+        sta tmpF
+        jmp draw_strip
+.endproc
+
+.proc draw_column_right
+        lda #1
+        sta tmpF
+        jmp draw_strip
+.endproc
+
+; ---------------------------------------------------------------------------
+; draw_strip -- queue one 8-pixel-wide strip (26 tiles) of metatile column
+; tmp0/tmp1.  tmpF selects the left (0) or right (1) half.
+;
+; One strip per frame keeps the NMI's VRAM burst well inside vblank, which
+; matters because the HUD scroll is only re-armed after the queue drains.
+; ---------------------------------------------------------------------------
+.proc draw_strip
         lda tmp0
         sta tmpA
         lda tmp1
         sta tmpB
-
-        ; ---- left strip -------------------------------------------------
-        lda #26
-        ldx #$04
-        jsr vq_open
-        sty tmpC
-        ldx #0                          ; metatile row
-@lrow:  stx tmpD
-        lda tmpA
-        sta tmp0
-        lda tmpB
-        sta tmp1
-        stx tmp2
-        jsr mt_at
-        jsr mt_quads
-        ldy tmpC
-        lda tmp7                        ; top-left tile
-        sta vram_buf,y
-        iny
-        lda tmp9                        ; bottom-left tile
-        sta vram_buf,y
-        iny
-        sty tmpC
-        ldx tmpD
-        inx
-        cpx #PLAY_ROWS
-        bcc @lrow
-        ldy tmpC
-        jsr vq_close
-
-        ; ---- right strip ------------------------------------------------
+        jsr mt_col_base
         lda tmpA
         sta tmp0
         lda tmpB
         sta tmp1
         jsr column_addr
-        inc tmp3
+        lda tmpF
+        clc
+        adc tmp3
+        sta tmp3
         lda #26
         ldx #$04
         jsr vq_open
         sty tmpC
         ldx #0
-@rrow:  stx tmpD
-        lda tmpA
-        sta tmp0
-        lda tmpB
-        sta tmp1
-        stx tmp2
-        jsr mt_at
+@row:   stx tmpD
+        txa
+        tay
+        jsr mt_col_at
         jsr mt_quads
         ldy tmpC
+        lda tmpF
+        bne @right
+        lda tmp7
+        sta vram_buf,y
+        iny
+        lda tmp9
+        sta vram_buf,y
+        jmp @next
+@right:
         lda tmp8
         sta vram_buf,y
         iny
         lda tmpE
         sta vram_buf,y
+@next:
         iny
         sty tmpC
         ldx tmpD
         inx
         cpx #PLAY_ROWS
-        bcc @rrow
+        bcc @row
         ldy tmpC
         jmp vq_close
 .endproc
@@ -459,32 +602,11 @@
 :       tay
         lda (mt_ptr),y
         sta tmp7
-        lda mt_ptr
-        clc
-        adc #64
-        sta ptr3
-        lda mt_ptr+1
-        adc #0
-        sta ptr3+1
-        lda (ptr3),y
+        lda (mt_tr),y
         sta tmp8
-        lda ptr3
-        clc
-        adc #64
-        sta ptr3
-        lda ptr3+1
-        adc #0
-        sta ptr3+1
-        lda (ptr3),y
+        lda (mt_bl),y
         sta tmp9
-        lda ptr3
-        clc
-        adc #64
-        sta ptr3
-        lda ptr3+1
-        adc #0
-        sta ptr3+1
-        lda (ptr3),y
+        lda (mt_br),y
         sta tmpE
         rts
 .endproc
@@ -497,14 +619,7 @@
         bne :+
         lda #0
 :       tay
-        lda mt_ptr
-        clc
-        adc #<256
-        sta ptr3
-        lda mt_ptr+1
-        adc #>256
-        sta ptr3+1
-        lda (ptr3),y
+        lda (mt_at_p),y
         and #3
         rts
 .endproc
@@ -519,6 +634,25 @@
         sta tmpA                        ; even column of the pair
         lda tmp1
         sta tmpB
+        ; base pointers for both columns of the pair
+        lda tmpA
+        sta tmp0
+        lda tmpB
+        sta tmp1
+        jsr mt_col_base
+        lda col_base
+        sta ptr2
+        lda col_base+1
+        sta ptr2+1
+        lda tmpA
+        clc
+        adc #1
+        sta tmp0
+        lda tmpB
+        adc #0
+        sta tmp1
+        jsr mt_col_base                 ; col_base now holds the odd column
+
         lda tmpA
         lsr a
         lsr a
@@ -535,50 +669,42 @@
         lsr a
         sta tmp6                        ; attribute column 0..7
 
-        ldx #0                          ; attribute row index 0..6 -> rows 1..7
+        ldx #0                          ; attribute row 0..6 -> rows 1..7
 @row:   stx tmpD
-        lda #0
-        sta tmpF
-        ldx #0                          ; quadrant 0..3
-@quad:  stx tmpC
         txa
-        and #1
-        clc
-        adc tmpA
-        sta tmp0
-        lda tmpB
-        adc #0
-        sta tmp1
-        lda tmpD
         asl a
-        sta tmp4
-        lda tmpC
-        lsr a
-        clc
-        adc tmp4
-        sta tmp2
-        jsr mt_at
-        jsr mt_attr
-        ldx tmpC
-        cpx #0
-        beq @sh0
-        cpx #1
-        beq @sh2
-        cpx #2
-        beq @sh4
-        asl a
-        asl a
-@sh4:   asl a
-        asl a
-@sh2:   asl a
-        asl a
-@sh0:   ora tmpF
+        tay                             ; metatile row of the upper half
+        lda (ptr2),y
+        jsr pal_of
         sta tmpF
-        ldx tmpC
-        inx
-        cpx #4
-        bcc @quad
-
+        lda (col_base),y
+        jsr pal_of
+        asl a
+        asl a
+        ora tmpF
+        sta tmpF
+        iny
+        cpy #PLAY_ROWS
+        bcs @half
+        lda (ptr2),y
+        jsr pal_of
+        asl a
+        asl a
+        asl a
+        asl a
+        ora tmpF
+        sta tmpF
+        lda (col_base),y
+        jsr pal_of
+        asl a
+        asl a
+        asl a
+        asl a
+        asl a
+        asl a
+        ora tmpF
+        sta tmpF
+@half:
         lda tmp5
         sta tmp2
         lda tmpD
@@ -600,6 +726,16 @@
         inx
         cpx #7
         bcc @row
+        rts
+.endproc
+
+; pal_of -- A = metatile index, returns its palette in the low two bits
+.proc pal_of
+        sty tmpC
+        tay
+        lda (mt_at_p),y
+        and #3
+        ldy tmpC
         rts
 .endproc
 
@@ -635,7 +771,12 @@
         sta tmp0
         lda col_next+1
         sta tmp1
-        jsr draw_column_tiles
+        jsr draw_column_left
+        lda col_next
+        sta tmp0
+        lda col_next+1
+        sta tmp1
+        jsr draw_column_right
         lda col_next
         sta tmp0
         lda col_next+1
@@ -703,6 +844,14 @@
         sta tmp0
         lda stream_col+1
         sta tmp1
+        lda stream_state
+        cmp #1
+        bne @attr
+        jsr draw_column_right
+        lda #2
+        sta stream_state
+        rts
+@attr:
         jsr draw_column_attr
         lda #0
         sta stream_state
@@ -770,9 +919,10 @@
         sta tmp0
         lda stream_col+1
         sta tmp1
-        jsr draw_column_tiles
+        jsr draw_column_left
         lda #1
         sta stream_state
 @none:  rts
 .endproc
+
 

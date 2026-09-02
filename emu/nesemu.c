@@ -306,8 +306,16 @@ static long stall_cycles;
 static u8 cpu_read(u16 a);
 static void cpu_write(u16 a, u8 v);
 
+int logppu = 0; long logppu_frame = -1;
+extern long total_cycles;
+int workaddr = -1; long work_t0 = 0, work_sum = 0, work_n = 0, work_max = 0;
+long work_maxframe = 0;
+long work_hist[8];
 static void ppu_reg_write(u16 a, u8 v)
 {
+    if (logppu && frame_count >= logppu_frame && frame_count < logppu_frame + 2
+        && ((a & 7) == 5 || (a & 7) == 0 || (a & 7) == 6))
+        printf("  reg $%04X=%02X at sl=%d dot=%d\n", 0x2000 + (a & 7), v, scanline, dot);
     switch (a & 7) {
     case 0:
         ppuctrl = v;
@@ -365,7 +373,21 @@ static u8 cpu_read(u16 a)
 
 static void cpu_write(u16 a, u8 v)
 {
-    if (a < 0x2000) { ram[a & 0x7FF] = v; return; }
+    if (a < 0x2000) {
+        if ((int)(a & 0x7FF) == workaddr) {
+            if (v == 0 && ram[a & 0x7FF] != 0) work_t0 = total_cycles;
+            else if (v == 1 && ram[a & 0x7FF] == 0 && work_t0) {
+                long d = total_cycles - work_t0;
+                if (d < 200000) {
+                    work_sum += d; work_n++;
+                    if (d > work_max) { work_max = d; work_maxframe = frame_count; }
+                    int b = (int)(d * 8 / 29781); if (b > 7) b = 7;
+                    work_hist[b]++;
+                }
+            }
+        }
+        ram[a & 0x7FF] = v; return;
+    }
     if (a < 0x4000) { ppu_reg_write(a, v); return; }
     if (a == 0x4014) {
         u16 base = v << 8;
@@ -411,7 +433,7 @@ static void setzn(u8 v) { P = (P & ~(FZ | FN)) | (v ? 0 : FZ) | (v & 0x80); }
 static void push(u8 v) { ram[0x100 + SP] = v; SP--; }
 static u8 pull(void) { SP++; return ram[0x100 + SP]; }
 
-static long total_cycles;
+long total_cycles;
 static int jam_flag;
 
 static void tick(int n)
@@ -790,6 +812,11 @@ int main(int argc, char **argv)
     if (argc < 2) { fprintf(stderr, "usage: nesemu rom.nes [opts]\n"); return 2; }
     long frames = 120; int scale = 1; const char *dumpram = NULL;
     const char *dumpvram = NULL; int watchn = 0; int watch[8]; long watchfrom = 0;
+    int deltaaddr = -1; long deltalast = -1, deltamax = 0, deltasum = 0, deltan = 0;
+    long deltahist[8]; memset(deltahist, 0, sizeof deltahist);
+    static long hot[1024]; int hoton = 0; long hotfrom = 0, hotto = 1L<<40;
+    int spin_lo = 0, spin_hi = 0; long spin_last = 0, worst = 0; long worst_pc = 0;
+    long worst_at = 0; long gap_start_frame = 0, worst_frame = 0;
     int cntn = 0; int cntaddr[8]; long cnthit[8];
     memset(cnthit, 0, sizeof cnthit);
     int pfn = 0; int pfa[24], pfb[24]; long pfc[24]; char pfname[24][32];
@@ -805,6 +832,10 @@ int main(int argc, char **argv)
             if (watchn < 8) watch[watchn++] = (int)strtol(argv[++i], NULL, 0);
         }
         else if (!strcmp(argv[i], "-watchfrom") && i + 1 < argc) watchfrom = atol(argv[++i]);
+        else if (!strcmp(argv[i], "-logppu") && i + 1 < argc) {
+            extern int logppu; extern long logppu_frame;
+            logppu = 1; logppu_frame = atol(argv[++i]);
+        }
         else if (!strcmp(argv[i], "-prof") && i + 1 < argc && pfn < 24) {
             char *a = argv[++i];
             char *c1 = strchr(a, ':');
@@ -816,6 +847,23 @@ int main(int argc, char **argv)
                 snprintf(pfname[pfn], 32, "%s", c2 + 1);
                 pfn++;
             }
+        }
+        else if (!strcmp(argv[i], "-hot")) { hoton = 1; }
+        else if (!strcmp(argv[i], "-hotrange") && i + 1 < argc) {
+            char *a = argv[++i]; char *c = strchr(a, ':');
+            hoton = 1;
+            if (c) { *c = 0; hotfrom = atol(a); hotto = atol(c + 1); }
+        }
+        else if (!strcmp(argv[i], "-work") && i + 1 < argc) {
+            extern int workaddr; workaddr = (int)strtol(argv[++i], NULL, 0);
+        }
+        else if (!strcmp(argv[i], "-spin") && i + 1 < argc) {
+            char *a = argv[++i]; char *c = strchr(a, ':');
+            if (c) { *c = 0; spin_lo = (int)strtol(a, NULL, 0);
+                     spin_hi = (int)strtol(c + 1, NULL, 0); }
+        }
+        else if (!strcmp(argv[i], "-delta") && i + 1 < argc) {
+            deltaaddr = (int)strtol(argv[++i], NULL, 0);
         }
         else if (!strcmp(argv[i], "-count") && i + 1 < argc) {
             if (cntn < 8) cntaddr[cntn++] = (int)strtol(argv[++i], NULL, 0);
@@ -908,8 +956,29 @@ int main(int argc, char **argv)
         }
         u16 pc0 = PC;
         for (int i = 0; i < cntn; i++) if (pc0 == cntaddr[i]) cnthit[i]++;
+        if (deltaaddr >= 0 && pc0 == deltaaddr) {
+            if (deltalast >= 0) {
+                long d = total_cycles - deltalast;
+                if (d > deltamax) deltamax = d;
+                deltasum += d; deltan++;
+                int b = (int)(d / 29781); if (b > 7) b = 7;
+                deltahist[b]++;
+            }
+            deltalast = total_cycles;
+        }
         long c_before = total_cycles;
         cpu_step();
+        if (hoton && pc0 >= 0xC000 && frame_count >= hotfrom && frame_count <= hotto)
+            hot[(pc0 - 0xC000) >> 6] += total_cycles - c_before;
+        if (spin_hi) {
+            if (pc0 >= spin_lo && pc0 < spin_hi) {
+                long gap = total_cycles - spin_last;
+                if (gap > worst && frame_count > 100) { worst = gap; worst_pc = 0; worst_frame = gap_start_frame; }
+                if (frame_count > 100 && gap > 200) { worst_at += gap; worst_pc++; }
+                spin_last = total_cycles;
+                gap_start_frame = frame_count;
+            }
+        }
         for (int i = 0; i < pfn; i++)
             if (pc0 >= pfa[i] && pc0 < pfb[i]) pfc[i] += total_cycles - c_before;
         if (PC == pc0) { if (++same_pc > 2000000) {
@@ -935,6 +1004,34 @@ int main(int argc, char **argv)
     if (dumpram) {
         FILE *g = fopen(dumpram, "wb");
         if (g) { fwrite(ram, 1, 2048, g); fclose(g); }
+    }
+    if (hoton) {
+        for (int k = 0; k < 20; k++) {
+            int best = 0;
+            for (int i = 1; i < 1024; i++) if (hot[i] > hot[best]) best = i;
+            if (!hot[best]) break;
+            printf("hot $%04X-$%04X  %8ld cycles (%.1f%%)\n",
+                   0xC000 + (best << 6), 0xC000 + (best << 6) + 63, hot[best],
+                   100.0 * hot[best] / total_cycles);
+            hot[best] = 0;
+        }
+    }
+    if (workaddr >= 0 && work_n) {
+        printf("main-loop work: avg %ld max %ld (at frame %ld) over %ld frames\n",
+               work_sum / work_n, work_max, work_maxframe, work_n);
+        printf("  eighths of a frame:");
+        for (int i = 0; i < 8; i++) printf(" %d:%ld", i + 1, work_hist[i]);
+        printf("\n");
+    }
+    if (spin_hi) printf("work gap: worst %ld (%.2f frames), avg %ld over %d gaps\n",
+                        worst, worst / 29781.0,
+                        worst_pc ? worst_at / worst_pc : 0, worst_pc);
+    if (deltaaddr >= 0 && deltan) {
+        printf("delta $%04X: n=%ld avg=%ld max=%ld\n", deltaaddr, deltan,
+               deltasum / deltan, deltamax);
+        printf("  frames/iteration:");
+        for (int i = 0; i < 8; i++) printf(" %d:%ld", i + 1, deltahist[i]);
+        printf("\n");
     }
     for (int i = 0; i < pfn; i++)
         printf("prof %-20s %8ld cycles  (%.1f%% of %ld frames)\n", pfname[i], pfc[i],

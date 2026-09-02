@@ -7,7 +7,7 @@
 
 .export camera_update, camera_snap, camera_apply, shake_start
 
-.segment "CODE2"
+.segment "CODE"
 
 CAM_CENTER = 104
 

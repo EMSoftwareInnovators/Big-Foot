@@ -108,7 +108,7 @@ PBOX_H          = 22
 
 ; ---------------------------------------------------------------- entities
 MAX_ENTITIES    = 12
-MAX_PARTICLES   = 10
+MAX_PARTICLES   = 6
 
 ; entity states
 ES_FREE         = 0

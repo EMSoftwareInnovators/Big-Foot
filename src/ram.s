@@ -158,10 +158,60 @@ stream_side: .res 1
 theme: .res 1
 .exportzp spawn_cur
 spawn_cur: .res 1
+.exportzp cur_ent
+cur_ent: .res 1
+.exportzp atk_x1
+atk_x1: .res 2
+.exportzp atk_x2
+atk_x2: .res 2
+.exportzp atk_y1
+atk_y1: .res 1
+.exportzp atk_y2
+atk_y2: .res 1
+.exportzp atk_dmg
+atk_dmg: .res 1
+.exportzp atk_kind
+atk_kind: .res 1
+.exportzp enemy_chr
+enemy_chr: .res 1
+.exportzp boss_chr
+boss_chr: .res 1
+.exportzp kick_type
+kick_type: .res 1
+.exportzp ent_tmp
+ent_tmp: .res 1
+.exportzp ent_tmp2
+ent_tmp2: .res 1
 .exportzp spawn_ptr
 spawn_ptr: .res 2
 .exportzp mt_ptr
 mt_ptr: .res 2
+.exportzp mt_tr
+mt_tr: .res 2
+.exportzp mt_bl
+mt_bl: .res 2
+.exportzp mt_br
+mt_br: .res 2
+.exportzp mt_at_p
+mt_at_p: .res 2
+.exportzp mt_fl_p
+mt_fl_p: .res 2
+.exportzp col_base
+col_base: .res 2
+.exportzp mtc_col
+mtc_col: .res 2
+.exportzp mtc_row
+mtc_row: .res 1
+.exportzp mtc_val
+mtc_val: .res 1
+.exportzp ms_lo_ptr
+ms_lo_ptr: .res 2
+.exportzp ms_hi_ptr
+ms_hi_ptr: .res 2
+.exportzp bms_lo_ptr
+bms_lo_ptr: .res 2
+.exportzp bms_hi_ptr
+bms_hi_ptr: .res 2
 .exportzp hdr_ptr
 hdr_ptr: .res 2
 .exportzp check_ptr
@@ -334,18 +384,24 @@ e_hurt: .res 12
 e_sub: .res 12
 .export e_slot
 e_slot: .res 12
+.export e_dir
+e_dir: .res 12
 .export pa_type
-pa_type: .res 10
-.export pa_x
-pa_x: .res 10
+pa_type: .res 6
+.export pa_xl
+pa_xl: .res 6
+.export pa_xh
+pa_xh: .res 6
 .export pa_y
-pa_y: .res 10
+pa_y: .res 6
 .export pa_vx
-pa_vx: .res 10
+pa_vx: .res 6
 .export pa_vy
-pa_vy: .res 10
+pa_vy: .res 6
 .export pa_tmr
-pa_tmr: .res 10
+pa_tmr: .res 6
+.export pa_frm
+pa_frm: .res 6
 .export spawn_used
 spawn_used: .res 12
 .export tile_dmg
@@ -412,5 +468,23 @@ mus_ptr: .res 2
 mus_len: .res 1
 .export obj_state
 obj_state: .res 16
+.export boss_x
+boss_x: .res 2
+.export boss_y
+boss_y: .res 2
+.export boss_vx
+boss_vx: .res 2
+.export boss_vy
+boss_vy: .res 2
+.export boss_frm
+boss_frm: .res 1
+.export boss_sub
+boss_sub: .res 1
+.export boss_atk
+boss_atk: .res 1
+.export boss_dir
+boss_dir: .res 1
+.export boss_anchor
+boss_anchor: .res 2
 .export scratch
 scratch: .res 32

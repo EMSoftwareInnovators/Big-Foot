@@ -12,7 +12,7 @@
 .import vq_open, vq_close, stage_name_lo, stage_name_hi
 .export hud_draw_full, hud_update, hud_boss_bar, hud_text_at, hud_clear_rows
 
-.segment "CODE2"
+.segment "CODE"
 
 ; ---------------------------------------------------------------------------
 ; hud_draw_full -- paint the whole bar.  Rendering must be off.

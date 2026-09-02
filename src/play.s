@@ -69,6 +69,62 @@
 .endproc
 
 ; ---------------------------------------------------------------------------
+; check_checkpoint -- record the furthest checkpoint the player has passed
+; ---------------------------------------------------------------------------
+.proc check_checkpoint
+        ldy #0
+        lda (check_ptr),y
+        beq @done
+        sta tmp5                        ; number of checkpoints
+        ; player column
+        lda px
+        sta tmp0
+        lda px+1
+        sta tmp1
+        lsr tmp1
+        ror tmp0
+        lsr tmp1
+        ror tmp0
+        lsr tmp1
+        ror tmp0
+        lsr tmp1
+        ror tmp0
+        ldx #0
+@loop:  cpx tmp5
+        bcs @done
+        txa
+        asl a
+        clc
+        adc #1
+        sta tmp6
+        stx tmp7
+        ldy tmp6
+        lda (check_ptr),y
+        sta tmp2
+        iny
+        lda (check_ptr),y
+        sta tmp3
+        lda tmp0
+        cmp tmp2
+        lda tmp1
+        sbc tmp3
+        bcc @next
+        ldx tmp7
+        inx
+        cpx checkpoint
+        bcc @next2
+        beq @next2
+        stx checkpoint
+        lda #SFX_SELECT
+        jsr sfx_play
+@next2: ldx tmp7
+@next:  ldx tmp7
+        inx
+        bne @loop
+@done:  rts
+.endproc
+
+; ---------------------------------------------------------------------------
 ; apply_checkpoint -- move the start position to the reached checkpoint
 ; ---------------------------------------------------------------------------
 .proc apply_checkpoint
@@ -134,6 +190,7 @@
         jsr oam_finish
         jsr hud_update
         jsr hud_boss_bar
+        jsr check_checkpoint
 
         ; ---- death handling ---------------------------------------------
         lda p_state
