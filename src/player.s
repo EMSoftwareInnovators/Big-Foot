@@ -828,11 +828,37 @@ shoe_stomp:     .byte $03,$01,$04,$02,$03,$01,$01,$06
 .endproc
 
 ; ---------------------------------------------------------------------------
+; hazard_check -- spikes, oil and furnace mouths are tagged COL_HAZARD in
+; the metatile tables and a pit floor is COL_DEATH.  Both are checked
+; against the middle of the foot, so brushing the very edge of a spike
+; block is survivable and standing in it is not.
+; ---------------------------------------------------------------------------
+.proc hazard_check
+        lda p_state
+        cmp #PSTATE_DEAD
+        beq @done
+        ldx #(256 - 10)                 ; a little above the sole
+        lda #0
+        jsr probe_flags
+        cmp #COL_DEATH
+        beq @kill
+        cmp #COL_HAZARD
+        bne @done
+        lda p_face              ; knocked back the way it came, not onward
+        eor #1
+        tax
+        lda #2
+        jmp player_hurt
+@kill:  jmp player_kill
+@done:  rts
+.endproc
+
+; ---------------------------------------------------------------------------
 .proc apply_physics
         jsr water_check
         jsr move_x
         jsr move_y
-        rts
+        jmp hazard_check
 .endproc
 
 ; ---------------------------------------------------------------------------

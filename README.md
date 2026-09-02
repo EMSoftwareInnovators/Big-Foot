@@ -71,6 +71,10 @@ You have no sword and no gun. The body **is** the weapon:
 Some enemies are armoured against a frontal kick and have to be stomped or
 hit from behind. Some are too heavy to flatten and have to be kicked.
 
+The ground is not always safe either: spikes, spilled oil and open furnace
+mouths hurt, and a pit floor kills outright. Weak ground gives way under a
+dive-stomp, ice will not hold a turn, and deep water needs the flipper.
+
 ### Footwear
 
 Eight things a giant foot can wear, each with its own physics table —
