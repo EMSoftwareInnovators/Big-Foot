@@ -243,16 +243,18 @@ BSS $0300-$07FF
   $573  sfxc_pri         4
   $577  sfxc_rep         4
   $57B  obj_state        16
-  $58B  boss_x           2
-  $58D  boss_y           2
-  $58F  boss_vx          2
-  $591  boss_vy          2
-  $593  boss_frm         1
-  $594  boss_sub         1
-  $595  boss_atk         1
-  $596  boss_dir         1
-  $597  boss_anchor      2
-  $599  scratch          32
+  $58B  boss_step        1
+  $58C  boss_x           2
+  $58E  boss_xs          1
+  $58F  boss_y           2
+  $591  boss_vx          2
+  $593  boss_vy          2
+  $595  boss_frm         1
+  $596  boss_sub         1
+  $597  boss_atk         1
+  $598  boss_dir         1
+  $599  boss_anchor      2
+  $59B  scratch          32
 
 zero page used : 223 / 256
-BSS used       : 697 / 1280 (ends $05B9)
+BSS used       : 699 / 1280 (ends $05BB)

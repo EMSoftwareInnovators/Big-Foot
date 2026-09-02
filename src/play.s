@@ -95,7 +95,9 @@ dbg_inv = obj_state + 15
         lda px+1
         adc #0
         sta px+1
-        rts
+        jsr camera_snap         ; or the camera trails and the boss spawns
+        jmp camera_apply        ; wherever the camera happens to be
+
 :       lda pad1_new
         and #BTN_A
         beq @done

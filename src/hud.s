@@ -397,7 +397,3 @@ shoe_letter:    .byte 2, 18, 19, 3, 9, 6, 12, 7
         bne :-
         rts
 .endproc
-
-.segment "BSS"
-boss_step: .res 1
-.export boss_step

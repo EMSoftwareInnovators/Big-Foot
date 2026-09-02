@@ -253,7 +253,9 @@ BSS = [
     ("sfxc_rep", 4),            # frames left on the current SFX frame
     # misc ----------------------------------------------------------------
     ("obj_state", 16),          # per-room switch / door state
-    ("boss_x", 2),
+    ("boss_step", 1),           # health per meter cell
+    ("boss_x", 2),              # whole pixels
+    ("boss_xs", 1),             # ... and the sub-pixel it is carrying
     ("boss_y", 2),
     ("boss_vx", 2),
     ("boss_vy", 2),

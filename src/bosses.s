@@ -14,7 +14,7 @@
 .import draw_metasprite, spr_set_world, shake_start, sfx_play
 .import text_blank_row, text_len
 .import spawn_entity, spawn_particle, entity_hurt_area, entities_init
-.import player_hurt, music_play, apply_chr, hud_text_at, boss_step
+.import player_hurt, music_play, apply_chr, hud_text_at
 .import boss_name_lo, boss_name_hi
 .import rand
 
@@ -47,7 +47,8 @@ AK_DROP   = 5           ; rise, hang, then drop on the player
 b_hp:      .byte  16,  18,  22,  24,  26,  28,  32,  36
 b_w:       .byte  28,  28,  44,  36,  44,  30,  52,  36
 b_h:       .byte  42,  40,  46,  40,  46,  46,  54,  44
-b_spd:     .byte $50, $70, $40, $68, $00, $58, $48, $80
+; walking speed in 8.8 sub-pixels per frame; a charge is four times it
+b_spd:     .byte $A0, $E0, $80, $D0, $00, $B0, $90, $FF
 b_jump:    .byte $04, $05, $04, $05, $00, $04, $03, $05
 b_delay:   .byte  70,  60,  64,  56,  40,  58,  54,  46
 b_touch:   .byte   2,   2,   3,   3,   3,   3,   4,   4
@@ -138,6 +139,7 @@ FLOOR_Y = 176
         sta boss_vx+1
         sta boss_vy
         sta boss_vy+1
+        sta boss_xs
         lda #BS_INTRO
         sta boss_state
         lda #120
@@ -303,26 +305,22 @@ FLOOR_Y = 176
         ldx boss_id
         lda b_spd,x
         beq @nowalk
-        sta tmp0
-        lda boss_dir
+        ldy boss_dir
         beq @right
-        lda boss_x
+        sta tmp2                ; walking left: negate the 8.8 speed
+        lda #0
         sec
-        sbc tmp0
-        sta boss_x
-        lda boss_x+1
+        sbc tmp2
+        sta tmp0
+        lda #0
         sbc #0
-        sta boss_x+1
-        jmp @clamp
-@right:
-        lda boss_x
-        clc
-        adc tmp0
-        sta boss_x
-        lda boss_x+1
-        adc #0
-        sta boss_x+1
-@clamp: jsr boss_clamp
+        sta tmp1
+        jmp @move
+@right: sta tmp0
+        lda #0
+        sta tmp1
+@move:  jsr boss_move_x
+        jsr boss_clamp
 @nowalk:
         jsr boss_gravity
         inc boss_sub
@@ -515,20 +513,26 @@ FLOOR_Y = 176
         sta boss_timer
         ldx boss_id
         lda b_spd,x
-        asl a
-        sta tmp0
+        sta tmp0                ; b_spd * 4, as an 8.8 velocity
+        lda #0
+        sta tmp1
+        asl tmp0
+        rol tmp1
+        asl tmp0
+        rol tmp1
         lda boss_dir
         beq @right
         lda #0
         sec
         sbc tmp0
         sta boss_vx
-        lda #$FF
+        lda #0
+        sbc tmp1
         sta boss_vx+1
         rts
 @right: lda tmp0
         sta boss_vx
-        lda #0
+        lda tmp1
         sta boss_vx+1
         rts
 .endproc
@@ -582,13 +586,11 @@ FLOOR_Y = 176
         lda #2
         sta boss_frm
         ; horizontal motion
-        lda boss_x
-        clc
-        adc boss_vx
-        sta boss_x
-        lda boss_x+1
-        adc boss_vx+1
-        sta boss_x+1
+        lda boss_vx
+        sta tmp0
+        lda boss_vx+1
+        sta tmp1
+        jsr boss_move_x
         jsr boss_clamp
         jsr boss_gravity
         dec boss_timer
@@ -673,6 +675,32 @@ FLOOR_Y = 176
 @done:  rts
 .endproc
 
+; ---------------------------------------------------------------------------
+; boss_move_x -- add the signed 8.8 velocity in tmp0/tmp1 to the position,
+; carrying the fraction in boss_xs.  boss_x stays whole pixels because the
+; clamp, the hit test and the renderer all read it directly.
+; ---------------------------------------------------------------------------
+.proc boss_move_x
+        lda tmp1
+        and #$80
+        beq :+
+        lda #$FF
+        bne :++
+:       lda #0
+:       sta tmp2                ; sign extension for the high byte
+        lda boss_xs
+        clc
+        adc tmp0
+        sta boss_xs
+        lda boss_x
+        adc tmp1
+        sta boss_x
+        lda boss_x+1
+        adc tmp2
+        sta boss_x+1
+        rts
+.endproc
+
 ; keep the boss inside the visible arena
 .proc boss_clamp
         lda boss_x
@@ -719,17 +747,37 @@ FLOOR_Y = 176
         beq @no
         cmp #BS_DEAD
         beq @no
+        ; A boss is wide, so test its whole span against the attack box
+        ; rather than just the point its metasprite hangs from.
         ldx boss_id
-        lda boss_x
-        cmp atk_x1
+        lda b_w,x
+        lsr a
+        sta tmp0
+        lda boss_x               ; left edge
+        sec
+        sbc tmp0
+        sta tmp1
         lda boss_x+1
+        sbc #0
+        sta tmp2
+        lda boss_x               ; right edge
+        clc
+        adc tmp0
+        sta tmp3
+        lda boss_x+1
+        adc #0
+        sta tmp4
+        lda atk_x2               ; box must reach the left edge ...
+        cmp tmp1
+        lda atk_x2+1
+        sbc tmp2
+        bcc @no
+        lda tmp3                 ; ... and the right edge must reach the box
+        cmp atk_x1
+        lda tmp4
         sbc atk_x1+1
         bcc @no
-        lda atk_x2
-        cmp boss_x
-        lda atk_x2+1
-        sbc boss_x+1
-        bcc @no
+        ldx boss_id
         lda boss_y
         cmp atk_y1
         bcc @no

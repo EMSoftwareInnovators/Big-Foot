@@ -488,8 +488,12 @@ sfxc_pri: .res 4
 sfxc_rep: .res 4
 .export obj_state
 obj_state: .res 16
+.export boss_step
+boss_step: .res 1
 .export boss_x
 boss_x: .res 2
+.export boss_xs
+boss_xs: .res 1
 .export boss_y
 boss_y: .res 2
 .export boss_vx

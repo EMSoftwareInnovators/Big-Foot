@@ -242,7 +242,9 @@ RAM_INC_ = 1
 .global sfxc_pri
 .global sfxc_rep
 .global obj_state
+.global boss_step
 .global boss_x
+.global boss_xs
 .global boss_y
 .global boss_vx
 .global boss_vy
