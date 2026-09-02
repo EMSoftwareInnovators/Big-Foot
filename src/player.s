@@ -1186,6 +1186,8 @@ shoe_stomp:     .byte $03,$01,$04,$02,$03,$01,$01,$06
 ; ---------------------------------------------------------------------------
 .proc give_shoe
         sta p_shoe
+        ldx #1
+        stx hud_dirty
         tax
         lda bitmask,x
         ora shoe_flags

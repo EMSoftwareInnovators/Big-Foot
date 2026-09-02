@@ -132,6 +132,7 @@ dbg_inv = obj_state + 15
         jsr draw_full_screen
         jsr hud_draw_full
         lda #1
+        sta hud_dirty           ; fills in the meter, lives and footwear
         sta split_on
         jsr oam_reset
         jsr oam_finish

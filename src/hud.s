@@ -272,16 +272,39 @@ hud_stage_txt: .byte 19,20,1,7,5,$FF    ; "STAGE"
         sta vram_buf,y
         iny
         jsr vq_close
+
+        ; the footwear's initial, beside the shoe icon
+        lda #$20
+        sta tmp2
+        lda #(32 + 27)
+        sta tmp3
+        lda #1
+        ldx #0
+        jsr vq_open
+        ldx p_shoe
+        lda shoe_letter,x
+        clc
+        adc #FONT_BASE
+        sta vram_buf,y
+        iny
+        jsr vq_close
+
         lda #0
         sta hud_dirty
 @done:  rts
 .endproc
+
+; BARE, RUNNING, STEEL, COWBOY, ICE CLEAT, FLIPPER, SLIPPER, BIG SHOE
+shoe_letter:    .byte 2, 18, 19, 3, 9, 6, 12, 7
 
 ; ---------------------------------------------------------------------------
 ; hud_boss_bar -- 16 meter cells on row 2 driven by boss_hp / boss_maxhp
 ; ---------------------------------------------------------------------------
 .proc hud_boss_bar
         lda boss_active
+        beq @done
+        lda boss_state          ; the name owns row 2 until the fight starts
+        cmp #1
         beq @done
         ; cells = boss_hp * 16 / boss_maxhp, approximated by repeated subtract
         lda #0

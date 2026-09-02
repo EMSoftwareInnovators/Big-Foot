@@ -44,6 +44,40 @@ def theme_sheet(th):
     return px, w, h, items
 
 
+def sprite_sheet(pal_of):
+    """Every enemy, object and boss frame, in its sprite palette."""
+    import gen_sprites
+    import gen_levels
+    items = []
+    for table in (gen_sprites.ENEMY_ART, gen_sprites.OBJECT_ART):
+        for name, (frames, pal, w, h) in sorted(table.items()):
+            for i, img in enumerate(frames):
+                items.append((name if i == 0 else "", img, pal))
+    for b, fn in enumerate(gen_levels.BOSS_ART):
+        for i in range(gen_levels.BOSS_FRAMES[b]):
+            items.append((gen_levels.BOSS_NAMES[b] if i == 0 else "",
+                          fn(i), 1))
+    cw = max(i[1].w for i in items) + 2
+    ch = max(i[1].h for i in items) + 2
+    cols = max(1, 512 // cw)
+    rows = (len(items) + cols - 1) // cols
+    w, h = cols * cw, rows * ch
+    px = [[(20, 20, 24) for _ in range(w)] for _ in range(h)]
+    names = []
+    for i, (name, img, pal) in enumerate(items):
+        ox = (i % cols) * cw + 1
+        oy = (i // cols) * ch + 1
+        colours = [0x0F] + list(gen_levels.SPR_PALS[0][pal])
+        for y in range(img.h):
+            for x in range(img.w):
+                c = img.px[y][x]
+                if c:
+                    px[oy + y][ox + x] = NES_RGB[colours[c] & 0x3F]
+        if name:
+            names.append("%s@%d" % (name, i))
+    return px, w, h, names
+
+
 def main():
     themes = [fn() for fn in gen_bg.THEMES]
     if len(sys.argv) > 1:
@@ -68,6 +102,12 @@ def main():
         y += h + 8
     name = "build/preview_%s.png" % ("_".join(sys.argv[1:]) or "themes")
     write_png_rgb(name, out, width, height, 3)
+    if not sys.argv[1:]:
+        spx, sw, sh, snames = sprite_sheet(None)
+        write_png_rgb("build/preview_sprites.png", spx, sw, sh, 3)
+        for i in range(0, len(snames), 6):
+            sys.stdout.write("   " + "  ".join(snames[i:i + 6]) + "\n")
+        sys.stdout.write("wrote build/preview_sprites.png\n")
     sys.stdout.write("".join(report))
     sys.stdout.write("wrote %s (%dx%d)\n" % (name, width * 3, height * 3))
 

@@ -12,6 +12,7 @@
 .include "bg.inc"
 
 .import draw_metasprite, spr_set_world, shake_start, sfx_play
+.import text_blank_row, text_len
 .import spawn_entity, spawn_particle, entity_hurt_area, entities_init
 .import player_hurt, music_play, apply_chr, hud_text_at, boss_step
 .import boss_name_lo, boss_name_hi
@@ -167,16 +168,26 @@ FLOOR_Y = 176
 ; ---------------------------------------------------------------------------
 ; boss_banner -- print the boss's name across HUD row 2
 ; ---------------------------------------------------------------------------
+; The name is announced across the whole of row 2 and then cleared, because
+; the health meter wants those same columns once the fight starts.
 .proc boss_banner
         ldx boss_id
         lda boss_name_lo,x
         sta ptr1
         lda boss_name_hi,x
         sta ptr1+1
+        jsr text_len            ; centre it
+        tya
+        lsr a
+        sta tmp0
+        lda #16
+        sec
+        sbc tmp0
+        clc
+        adc #64
+        sta tmp3
         lda #$20
         sta tmp2
-        lda #(64 + 3)
-        sta tmp3
         jmp hud_text_at
 .endproc
 
@@ -220,6 +231,8 @@ FLOOR_Y = 176
         bne @wait
         lda #BS_WALK
         sta boss_state
+        lda #2                  ; take the name down; the meter takes the row
+        jsr text_blank_row
         ldx boss_id
         lda b_delay,x
         sta boss_timer
