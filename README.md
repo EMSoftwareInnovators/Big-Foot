@@ -326,6 +326,12 @@ The emulator has driven every stage of development: screenshots for the
 graphics, watchpoints and the guard for the logic, the cycle profiler for
 the frame budget, and the APU trace for the music.
 
+`tools/pwtest.py` generates an input script that types a given stage's
+password, which is how each stage is reached for testing -- exactly, and
+exercising the password screen on the way. All eight bosses have been
+triggered, damaged and killed this way, through the stage-clear screen and
+the kingdom's next dispatch, and the Left Foot through to the ending.
+
 **Not** verified: audio has never been listened to, only inspected as
 register writes; and the ROM has not been run on real hardware or on a
 mainstream emulator. Everything stated above about how it behaves comes
