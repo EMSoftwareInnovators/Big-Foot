@@ -506,7 +506,9 @@ def theme_fortress():
     th.add("BGB", _silhouette(302, "battlecrest"), 2, EMPTY)
     th.add("BGC", _silhouette(3021, "flat"), 2, EMPTY)
     th.add("BGD", _silhouette(303, "towerfar"), 2, EMPTY)
-    th.add("BACKWALL", T.bricks(3022, base=1, mortar=1, light=1), 2, EMPTY)
+    # courses in two tones, so the wall behind the fight reads as masonry
+    th.add("BACKWALL", T.bricks(3022, base=1, mortar=2, light=1,
+                                bw=8, bh=4), 2, EMPTY)
     th.add("SLIT", _arrowslit(), 2, EMPTY)
     th.add("D1", T.banner(304), 3, EMPTY)
     th.add("D2", _battlement(), 0, SOLID)
@@ -677,7 +679,7 @@ def theme_factory():
     th.add("BGB", _silhouette(502, "machinecrest"), 2, EMPTY)
     th.add("BGC", _silhouette(5021, "flat"), 2, EMPTY)
     th.add("BGD", _silhouette(503, "towerfar"), 2, EMPTY)
-    th.add("BACKWALL", T.metal_plate(5022, base=1, dark=1, light=1), 2, EMPTY)
+    th.add("BACKWALL", T.metal_plate(5022, base=1, dark=1, light=2), 2, EMPTY)
     th.add("GRID", _grid(), 2, EMPTY)
     th.add("D1", T.pipes(504), 0, SOLID)
     th.add("D2", _girder(), 0, SOLID)
@@ -787,7 +789,8 @@ def theme_cathedral():
     th.add("BGB", _silhouette(602, "archcrest"), 1, EMPTY)
     th.add("BGC", _silhouette(6021, "flat"), 1, EMPTY)
     th.add("BGD", _column(), 1, EMPTY)
-    th.add("BACKWALL", T.bricks(603, base=1, mortar=1, light=1), 1, EMPTY)
+    th.add("BACKWALL", T.bricks(603, base=1, mortar=2, light=1,
+                                bw=8, bh=4), 1, EMPTY)
     th.add("D1", _column(), 0, SOLID)
     th.add("D2", T.arch_window(604), 2, EMPTY)
     th.add("D3", _pew(), 3, SOLID)
