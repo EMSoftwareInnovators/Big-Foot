@@ -1779,8 +1779,16 @@ kick_power: .byte 3,2,5,6,3,3,2,7
         rts
 .endproc
 
+; Dust and sparks are the first thing to go when OAM fills up: during a boss
+; fight the player and the boss between them can use nearly all 64 sprites,
+; and losing a chunk of the boss to a puff of dust is much worse than losing
+; the dust.
 .proc particles_draw
-        ldy #MAX_PARTICLES-1
+        lda oam_idx
+        cmp #216
+        bcc :+
+        rts
+:       ldy #MAX_PARTICLES-1
 @loop:  sty ent_tmp
         lda pa_type,y
         beq @next

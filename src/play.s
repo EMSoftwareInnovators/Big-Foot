@@ -276,8 +276,13 @@ dbg_inv = obj_state + 15
         rts
 :
         jsr player_update
+        ; The boss arena is the boss's: entities_init empties the pool when
+        ; the fight starts, and without this the whole stretch of level the
+        ; camera is locked over would simply spawn again around it.
+        lda boss_active
+        bne :+
         jsr spawn_check
-        jsr entities_update
+:       jsr entities_update
         jsr boss_update
         jsr particles_update
         jsr camera_update
